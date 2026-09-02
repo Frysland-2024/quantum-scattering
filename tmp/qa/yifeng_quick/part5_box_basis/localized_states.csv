@@ -1,4 +1,0 @@
-label,global_state_index,energy,parity,target_energy,delta_energy,central_localization_fraction,c_norm,coordinate_norm
-Bound state,0,-0.297959637858032,even,,,0.999956025537877,1,1
-First resonance,53,0.620990125867883,odd,0.62097030266192,1.98232059629433e-05,0.992709401426128,1,1
-Second resonance,80,1.3429751040639,even,1.32882394672,0.0141511573439022,0.403142202658542,1,0.999999999999998

@@ -1,4 +1,0 @@
-label,state_index_zero_based,state_number_one_based,energy,target_energy,energy_difference,finite_grid_norm,central_probability_abs_x_le_12,parity_expectation
-bound state,0,1,-0.297959637856474,,,0.999999999999996,0.999999999998281,1
-first resonance,67,68,0.620972220434375,0.6209703027,1.91773437507869e-06,1,0.995442652351737,-1
-second resonance,100,101,1.33028104932414,1.3288239467,0.00145710262414145,1,0.558088963996817,1
