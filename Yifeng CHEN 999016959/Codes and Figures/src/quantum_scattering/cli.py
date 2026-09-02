@@ -36,6 +36,44 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _remove_if_present(path: Path) -> None:
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def cleanup_non_deliverables(root: Path) -> None:
+    """Remove development/audit metadata while keeping required project outputs.
+
+    In particular, Part 2's delta_convergence.csv is a required deliverable and
+    must never be removed here.
+    """
+    root = root.resolve()
+
+    # Top-level generator bookkeeping is not part of the report deliverables.
+    _remove_if_present(root / "manifest.json")
+
+    # Part 3: keep the five PNG figures; remove only the numerical audit JSON.
+    _remove_if_present(root / "part3_stationary_scattering" / "resonance_summary.json")
+
+    # Part 4: keep all PNG/GIF results; remove diagnostics and manifest files.
+    part4 = root / "part4_wavepacket_scattering"
+    for path in part4.glob("*_diagnostics.json"):
+        _remove_if_present(path)
+    _remove_if_present(part4 / "part4_manifest.json")
+
+    # Part 5: keep the five PNG figures only.
+    part5 = root / "part5_box_basis"
+    _remove_if_present(part5 / "part5_diagnostics.json")
+    _remove_if_present(part5 / "part5_manifest.json")
+
+    # Part 6: keep the four PNG figures only.
+    part6 = root / "part6_complex_scaling"
+    _remove_if_present(part6 / "part6_diagnostics.json")
+    _remove_if_present(part6 / "part6_manifest.json")
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     started = time.perf_counter()
@@ -54,8 +92,12 @@ def main(argv: list[str] | None = None) -> int:
         created = generate_part5(args.output_dir, profile=args.profile)
     else:
         created = generate_part6(args.output_dir, profile=args.profile)
+
+    cleanup_non_deliverables(args.output_dir)
+    created = [path for path in created if Path(path).exists()]
+
     elapsed = time.perf_counter() - started
-    print(f"Generated {len(created)} artifacts in {elapsed:.2f} s under {args.output_dir.resolve()}")
+    print(f"Generated {len(created)} deliverables in {elapsed:.2f} s under {args.output_dir.resolve()}")
     for path in created:
         print(path.resolve())
     return 0
