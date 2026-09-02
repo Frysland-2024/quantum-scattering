@@ -7,8 +7,8 @@ import time
 from pathlib import Path
 
 from .figures import generate_all, generate_part1, generate_part2, generate_part3, generate_part4
-from .part5 import generate_part5
-from .part6 import generate_part6
+from .box_basis import generate_part5
+from .complex_scaling import generate_part6
 
 
 def build_parser() -> argparse.ArgumentParser:

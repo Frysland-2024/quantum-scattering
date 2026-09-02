@@ -11,7 +11,7 @@ SRC_DIR = Path(__file__).resolve().parent / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from quantum_scattering.part5 import generate_part5
+from quantum_scattering.box_basis import generate_part5
 
 
 def build_parser() -> argparse.ArgumentParser:
