@@ -1,0 +1,29 @@
+{
+  "profile": "quick",
+  "parameters": {
+    "J": 400,
+    "L": 200.0,
+    "N": 4001
+  },
+  "theta": [
+    0.0,
+    0.05,
+    0.1,
+    0.15,
+    0.2,
+    0.25
+  ],
+  "static_figure_count": 4,
+  "resonance_count": 5,
+  "artifacts": [
+    "complex_eigenvalues_all.png",
+    "complex_eigenvalues_by_theta.png",
+    "breit_wigner_profiles_all.png",
+    "breit_wigner_profiles_zoom.png",
+    "complex_spectra.csv",
+    "resonance_poles.csv",
+    "breit_wigner_comparison.csv",
+    "part6_diagnostics.json"
+  ],
+  "diagnostics": "part6_diagnostics.json"
+}

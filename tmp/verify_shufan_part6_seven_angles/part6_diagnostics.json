@@ -1,0 +1,487 @@
+{
+  "method": {
+    "name": "analytic uniform complex-coordinate scaling in a sine box basis",
+    "hamiltonian": "H(theta)=exp(-2i theta) T + V(x exp(i theta))",
+    "potential": "V(z)=(z^2/2-0.8) exp(-z^2/10)",
+    "matrix_structure": "complex symmetric, not Hermitian",
+    "breit_wigner": "(-Im E_pole)^2 / ((E-Re E_pole)^2+(-Im E_pole)^2)",
+    "width_convention": "E_pole=E_r-i Gamma/2"
+  },
+  "profile": "quick",
+  "config": {
+    "basis_size": 400,
+    "box_length": 200.0,
+    "quadrature_points": 2401,
+    "mass": 1.0,
+    "hbar": 1.0
+  },
+  "angles": [
+    0.0,
+    0.04,
+    0.08,
+    0.12,
+    0.16,
+    0.2,
+    0.25
+  ],
+  "plot_window": {
+    "real": [
+      -0.35,
+      3.0
+    ],
+    "imaginary": [
+      -2.0,
+      0.1
+    ]
+  },
+  "part3_source": "not loaded (--only spectra)",
+  "part3_peaks": {
+    "E1": 0.6209703037,
+    "E2": 1.3288237771
+  },
+  "resonance_selection": {
+    "reference_angle": 0.25,
+    "continuum_clearance_threshold": 0.04,
+    "matching_tolerance": 0.012,
+    "exposure_condition": "2 theta >= abs(arg(E_pole)) + 0.05",
+    "stable_requires_at_least_angles": 2,
+    "note": "a deepest pole exposed only at theta=0.25 is retained as provisional"
+  },
+  "resonances": [
+    {
+      "label": "E1",
+      "status": "stable",
+      "pole": {
+        "real": 0.6209709509898599,
+        "imaginary": -5.8266721878817215e-05
+      },
+      "Gamma": 0.00011653344375763443,
+      "tracked_thetas": [
+        0.04,
+        0.08,
+        0.12,
+        0.16,
+        0.2,
+        0.25
+      ],
+      "tracked_values": [
+        {
+          "real": 0.6209709545318092,
+          "imaginary": -5.825115388627979e-05
+        },
+        {
+          "real": 0.6209709510340484,
+          "imaginary": -5.826663036218897e-05
+        },
+        {
+          "real": 0.6209709510601635,
+          "imaginary": -5.8266650286148816e-05
+        },
+        {
+          "real": 0.6209709510828711,
+          "imaginary": -5.826661119158737e-05
+        },
+        {
+          "real": 0.6209709510223953,
+          "imaginary": -5.8266579383799124e-05
+        },
+        {
+          "real": 0.6209709509898599,
+          "imaginary": -5.8266721878817215e-05
+        }
+      ],
+      "max_track_deviation": 1.596583215538936e-08,
+      "continuum_clearance_at_max_theta": 0.2976581987768184
+    },
+    {
+      "label": "E2",
+      "status": "stable",
+      "pole": {
+        "real": 1.3271970723290154,
+        "imaginary": -0.015447319093211325
+      },
+      "Gamma": 0.03089463818642265,
+      "tracked_thetas": [
+        0.04,
+        0.08,
+        0.12,
+        0.16,
+        0.2,
+        0.25
+      ],
+      "tracked_values": [
+        {
+          "real": 1.3271974258126866,
+          "imaginary": -0.01544706387259491
+        },
+        {
+          "real": 1.327197072598918,
+          "imaginary": -0.015447318786972156
+        },
+        {
+          "real": 1.3271970726946385,
+          "imaginary": -0.01544731888172749
+        },
+        {
+          "real": 1.3271970728189777,
+          "imaginary": -0.015447318744812444
+        },
+        {
+          "real": 1.327197072608088,
+          "imaginary": -0.015447318560808084
+        },
+        {
+          "real": 1.3271970723290154,
+          "imaginary": -0.015447319093211325
+        }
+      ],
+      "max_track_deviation": 4.359911339286291e-07,
+      "continuum_clearance_at_max_theta": 0.6227358733711013
+    },
+    {
+      "label": "E3",
+      "status": "stable",
+      "pole": {
+        "real": 1.784582868098093,
+        "imaginary": -0.17375070949178775
+      },
+      "Gamma": 0.3475014189835755,
+      "tracked_thetas": [
+        0.08,
+        0.12,
+        0.16,
+        0.2,
+        0.25
+      ],
+      "tracked_values": [
+        {
+          "real": 1.7845824924157294,
+          "imaginary": -0.17374885017828773
+        },
+        {
+          "real": 1.7845828688701744,
+          "imaginary": -0.1737507097901757
+        },
+        {
+          "real": 1.784582869229478,
+          "imaginary": -0.17375070980779436
+        },
+        {
+          "real": 1.7845828692473231,
+          "imaginary": -0.17375070926332428
+        },
+        {
+          "real": 1.784582868098093,
+          "imaginary": -0.17375070949178775
+        }
+      ],
+      "max_track_deviation": 1.8968879591953127e-06,
+      "continuum_clearance_at_max_theta": 0.7030940099556886
+    },
+    {
+      "label": "E4",
+      "status": "stable",
+      "pole": {
+        "real": 2.1244218910611923,
+        "imaginary": -0.5647949798973617
+      },
+      "Gamma": 1.1295899597947234,
+      "tracked_thetas": [
+        0.16,
+        0.2,
+        0.25
+      ],
+      "tracked_values": [
+        {
+          "real": 2.1244199487682502,
+          "imaginary": -0.5647943899756575
+        },
+        {
+          "real": 2.1244218928459273,
+          "imaginary": -0.564794982665159
+        },
+        {
+          "real": 2.1244218910611923,
+          "imaginary": -0.5647949798973617
+        }
+      ],
+      "max_track_deviation": 2.029903812954278e-06,
+      "continuum_clearance_at_max_theta": 0.5228478839434232
+    },
+    {
+      "label": "E5",
+      "status": "provisional",
+      "pole": {
+        "real": 2.455486275676581,
+        "imaginary": -1.1115315686614995
+      },
+      "Gamma": 2.223063137322999,
+      "tracked_thetas": [
+        0.25
+      ],
+      "tracked_values": [
+        {
+          "real": 2.455486275676581,
+          "imaginary": -1.1115315686614995
+        }
+      ],
+      "max_track_deviation": 0.0,
+      "continuum_clearance_at_max_theta": 0.20176210860348998
+    }
+  ],
+  "validation": {
+    "theta_zero_max_abs_imaginary_eigenvalue": 0.0,
+    "maximum_complex_symmetry_relative_error": 0.0,
+    "maximum_odd_cosine_moment_absolute_value": 3.557932024423212e-14,
+    "maximum_cross_parity_coupling_upper_bound": 3.557932024423212e-16,
+    "parity_block_note": "even analytic potential gives zero odd cosine moments; J is solved as independent odd-index and even-index sine blocks",
+    "bound_state_invariance": {
+      "reference_energy": -0.297959638,
+      "theta_values": [
+        0.0,
+        0.04,
+        0.08,
+        0.12,
+        0.16,
+        0.2,
+        0.25
+      ],
+      "tracked_values": [
+        {
+          "real": -0.2979596378564732,
+          "imaginary": 0.0
+        },
+        {
+          "real": -0.29795963785827045,
+          "imaginary": 1.6232085391521683e-12
+        },
+        {
+          "real": -0.2979596378598715,
+          "imaginary": -5.271597008842165e-13
+        },
+        {
+          "real": -0.2979596378570768,
+          "imaginary": -2.253350284142641e-12
+        },
+        {
+          "real": -0.2979596378550038,
+          "imaginary": 1.7199852653249081e-12
+        },
+        {
+          "real": -0.29795963786113666,
+          "imaginary": 4.480443793752897e-12
+        },
+        {
+          "real": -0.2979596378632604,
+          "imaginary": -9.628103869729898e-12
+        }
+      ],
+      "real_part_spread": 8.256617611834827e-12,
+      "maximum_absolute_imaginary_part": 9.628103869729898e-12,
+      "maximum_absolute_error_from_reference": 1.4500643834948026e-10,
+      "acceptance": {
+        "real_part_spread_below_1e-8": true,
+        "maximum_abs_imag_below_1e-8": true,
+        "maximum_reference_error_below_1e-6": true
+      }
+    },
+    "theta_0p25_reference_poles": {
+      "reference_angle": 0.25,
+      "expected_pole_count": 5,
+      "computed_pole_count": 5,
+      "acceptance_count_equals_five": true,
+      "comparisons": [
+        {
+          "label": "E1",
+          "reference": {
+            "real": 0.620971,
+            "imaginary": -5.8e-05
+          },
+          "computed": {
+            "real": 0.6209709509898599,
+            "imaginary": -5.8266721878817215e-05
+          },
+          "absolute_complex_error": 2.7118730515847473e-07
+        },
+        {
+          "label": "E2",
+          "reference": {
+            "real": 1.327197,
+            "imaginary": -0.015447
+          },
+          "computed": {
+            "real": 1.3271970723290154,
+            "imaginary": -0.015447319093211325
+          },
+          "absolute_complex_error": 3.2718796430857017e-07
+        },
+        {
+          "label": "E3",
+          "reference": {
+            "real": 1.78458,
+            "imaginary": -0.17375
+          },
+          "computed": {
+            "real": 1.784582868098093,
+            "imaginary": -0.17375070949178775
+          },
+          "absolute_complex_error": 2.9545499264875084e-06
+        },
+        {
+          "label": "E4",
+          "reference": {
+            "real": 2.12442,
+            "imaginary": -0.56479
+          },
+          "computed": {
+            "real": 2.1244218910611923,
+            "imaginary": -0.5647949798973617
+          },
+          "absolute_complex_error": 5.326864947159751e-06
+        },
+        {
+          "label": "E5",
+          "reference": {
+            "real": 2.45549,
+            "imaginary": -1.11153
+          },
+          "computed": {
+            "real": 2.455486275676581,
+            "imaginary": -1.1115315686614995
+          },
+          "absolute_complex_error": 4.041198316040092e-06
+        }
+      ],
+      "maximum_absolute_complex_error": 5.326864947159751e-06,
+      "acceptance_maximum_error_below_1e-5": true
+    },
+    "breit_wigner_identities": {
+      "checks": [
+        {
+          "label": "E1",
+          "center_value": 1.0,
+          "positive_half_width_value": 0.5000000000000792,
+          "center_error_from_one": 0.0,
+          "half_width_error_from_half": 7.915890165577366e-14
+        },
+        {
+          "label": "E2",
+          "center_value": 1.0,
+          "positive_half_width_value": 0.4999999999999976,
+          "center_error_from_one": 0.0,
+          "half_width_error_from_half": 2.3869795029440866e-15
+        },
+        {
+          "label": "E3",
+          "center_value": 1.0,
+          "positive_half_width_value": 0.4999999999999997,
+          "center_error_from_one": 0.0,
+          "half_width_error_from_half": 2.7755575615628914e-16
+        },
+        {
+          "label": "E4",
+          "center_value": 1.0,
+          "positive_half_width_value": 0.49999999999999983,
+          "center_error_from_one": 0.0,
+          "half_width_error_from_half": 1.6653345369377348e-16
+        },
+        {
+          "label": "E5",
+          "center_value": 1.0,
+          "positive_half_width_value": 0.5,
+          "center_error_from_one": 0.0,
+          "half_width_error_from_half": 0.0
+        }
+      ],
+      "maximum_center_error_from_one": 0.0,
+      "maximum_half_width_error_from_half": 7.915890165577366e-14,
+      "acceptance_errors_below_1e-12": true
+    },
+    "automatic_acceptance": {
+      "bound_state_invariance": true,
+      "five_reference_poles": true,
+      "breit_wigner_center_and_half_width": true,
+      "all_passed": true
+    },
+    "continuum_rotation": [
+      {
+        "theta": 0.0,
+        "expected_continuum_angle": 0.0,
+        "fitted_continuum_angle": -0.0,
+        "angle_error": -0.0,
+        "fitted_slope_imag_over_real": 0.0,
+        "expected_slope": -0.0,
+        "points_used": 125
+      },
+      {
+        "theta": 0.04,
+        "expected_continuum_angle": 0.08,
+        "fitted_continuum_angle": 0.07888727003280463,
+        "angle_error": -0.0011127299671953722,
+        "fitted_slope_imag_over_real": -0.07905132220585938,
+        "expected_slope": -0.08017110470807255,
+        "points_used": 129
+      },
+      {
+        "theta": 0.08,
+        "expected_continuum_angle": 0.16,
+        "fitted_continuum_angle": 0.1585058001746477,
+        "angle_error": -0.0014941998253523159,
+        "fitted_slope_imag_over_real": -0.15984671542523934,
+        "expected_slope": -0.16137946073521095,
+        "points_used": 127
+      },
+      {
+        "theta": 0.12,
+        "expected_continuum_angle": 0.24,
+        "fitted_continuum_angle": 0.23822531356730506,
+        "angle_error": -0.001774686432694933,
+        "fitted_slope_imag_over_real": -0.2428365515076919,
+        "expected_slope": -0.24471670271446497,
+        "points_used": 128
+      },
+      {
+        "theta": 0.16,
+        "expected_continuum_angle": 0.32,
+        "fitted_continuum_angle": 0.3186680712944484,
+        "angle_error": -0.0013319287055515994,
+        "fitted_slope_imag_over_real": -0.3299118568198956,
+        "expected_slope": -0.3313894052242346,
+        "points_used": 129
+      },
+      {
+        "theta": 0.2,
+        "expected_continuum_angle": 0.4,
+        "fitted_continuum_angle": 0.39904583265048876,
+        "angle_error": -0.000954167349511259,
+        "fitted_slope_imag_over_real": -0.42166894326623594,
+        "expected_slope": -0.4227932187381618,
+        "points_used": 132
+      },
+      {
+        "theta": 0.25,
+        "expected_continuum_angle": 0.5,
+        "fitted_continuum_angle": 0.5005973193536153,
+        "angle_error": 0.0005973193536152888,
+        "fitted_slope_imag_over_real": -0.5470783302765926,
+        "expected_slope": -0.5463024898437905,
+        "points_used": 134
+      }
+    ],
+    "part3_breit_wigner_comparison": []
+  },
+  "generated_figures": [
+    "part6_complex_eigenvalues_all.png",
+    "part6_complex_eigenvalues_separate.png"
+  ],
+  "runtime": {
+    "theta_0.00_seconds": 0.00594420000561513,
+    "theta_0.04_seconds": 0.10253639999427833,
+    "theta_0.08_seconds": 0.10352379997493699,
+    "theta_0.12_seconds": 0.10223370001767762,
+    "theta_0.16_seconds": 0.09483470002305694,
+    "theta_0.20_seconds": 0.0974487999919802,
+    "theta_0.25_seconds": 0.10229899999103509,
+    "total_seconds": 1.555773300002329
+  }
+}

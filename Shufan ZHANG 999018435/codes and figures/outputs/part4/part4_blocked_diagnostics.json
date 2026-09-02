@@ -1,0 +1,70 @@
+{
+  "scenario": "blocked",
+  "continuum_packet_only": true,
+  "energy_center_source": "lecture scenario",
+  "energy": {
+    "Emin": 0.8,
+    "E0": 1.0,
+    "Emax": 1.2
+  },
+  "marker": {
+    "sample_energy": 1.0000000000000002,
+    "T": 4.28103356609009e-05,
+    "R": 0.9999571896649047,
+    "unitarity_error": 5.655476087440547e-13
+  },
+  "part3_high_resolution_reference": {
+    "E1": 0.6209703037,
+    "E2": 1.3288237771
+  },
+  "basis": {
+    "dx": 0.01,
+    "momentum_points": 301
+  },
+  "packet": {
+    "a0": 0.049497,
+    "sigma_p_amplitude": 0.06999932869678109,
+    "momentum_norm": 1.0000000000000004,
+    "integrated_PT": 0.00014145430475934992,
+    "integrated_PR": 0.9998585456952509,
+    "integrated_unitarity_error": 1.021405182655144e-14,
+    "finite_window_spatial_norms": {
+      "t=-20": 0.9999999999842001,
+      "t=10": 0.9999897022279284,
+      "t=25": 0.9999664949065054,
+      "t=50": 0.9999998479525526
+    }
+  },
+  "basis_unitarity": {
+    "maximum_error": 1.5815126985785355e-12
+  },
+  "global_rendering": {
+    "xlim": [
+      -200.0,
+      200.0
+    ],
+    "points": 1500,
+    "dx": 0.2668445630420422,
+    "carrier_wavelength": 4.442882938158366,
+    "samples_per_carrier_wavelength": 16.649703810747592,
+    "carrier_numerically_resolved": true,
+    "mode": "resolved complex carrier"
+  },
+  "report_layout": {
+    "snapshots": [
+      -20.0,
+      10.0,
+      25.0,
+      50.0
+    ],
+    "spectrum_xlim": [
+      0.72,
+      1.28
+    ],
+    "figure_pixels": [
+      2380,
+      1530
+    ],
+    "potential_display": "V(x), unscaled"
+  }
+}

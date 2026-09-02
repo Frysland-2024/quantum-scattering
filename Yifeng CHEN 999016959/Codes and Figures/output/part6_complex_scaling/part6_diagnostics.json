@@ -1,0 +1,291 @@
+{
+  "method": "Lecture-10 sine-box basis with global complex scaling and parity-block diagonalization",
+  "complex_scaled_hamiltonian": "H(theta)=exp(-2 i theta) T + V(x exp(i theta))",
+  "basis": "sqrt(2/L) sin(j*pi*(x+L/2)/L), j=1..J",
+  "potential_matrix": "V_ij=(C_|i-j|-C_i+j)/L from a complex trapezoidal DCT-I",
+  "profile": "full",
+  "parameters": {
+    "J": 2000,
+    "L": 200.0,
+    "N": 10000,
+    "theta": [
+      0.0,
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.25
+    ]
+  },
+  "parity_block_sizes": [
+    1000,
+    1000
+  ],
+  "spectra": [
+    {
+      "theta": 0.0,
+      "eigenvalue_count": 2000,
+      "maximum_odd_cosine_moment": 2.7783318934597273e-14,
+      "cross_parity_coupling_bound": 2.778331893459727e-16,
+      "hamiltonian_symmetry_error": 0.0
+    },
+    {
+      "theta": 0.05,
+      "eigenvalue_count": 2000,
+      "maximum_odd_cosine_moment": 2.8081050465019373e-14,
+      "cross_parity_coupling_bound": 2.808105046501937e-16,
+      "hamiltonian_symmetry_error": 0.0
+    },
+    {
+      "theta": 0.1,
+      "eigenvalue_count": 2000,
+      "maximum_odd_cosine_moment": 2.900731127635953e-14,
+      "cross_parity_coupling_bound": 2.9007311276359534e-16,
+      "hamiltonian_symmetry_error": 0.0
+    },
+    {
+      "theta": 0.15,
+      "eigenvalue_count": 2000,
+      "maximum_odd_cosine_moment": 3.0594282671065056e-14,
+      "cross_parity_coupling_bound": 3.0594282671065057e-16,
+      "hamiltonian_symmetry_error": 0.0
+    },
+    {
+      "theta": 0.2,
+      "eigenvalue_count": 2000,
+      "maximum_odd_cosine_moment": 3.304074581232648e-14,
+      "cross_parity_coupling_bound": 3.304074581232648e-16,
+      "hamiltonian_symmetry_error": 0.0
+    },
+    {
+      "theta": 0.25,
+      "eigenvalue_count": 2000,
+      "maximum_odd_cosine_moment": 3.636273600629201e-14,
+      "cross_parity_coupling_bound": 3.6362736006292007e-16,
+      "hamiltonian_symmetry_error": 0.0
+    }
+  ],
+  "continuum_rotation_checks": [
+    {
+      "theta": 0.0,
+      "expected_slope": -0.0,
+      "fitted_high_energy_slope": 0.0,
+      "absolute_slope_error": 0.0,
+      "displayed_eigenvalue_count": 154
+    },
+    {
+      "theta": 0.05,
+      "expected_slope": -0.10033467208545055,
+      "fitted_high_energy_slope": -0.09891636881516562,
+      "absolute_slope_error": 0.001418303270284929,
+      "displayed_eigenvalue_count": 154
+    },
+    {
+      "theta": 0.1,
+      "expected_slope": -0.2027100355086725,
+      "fitted_high_energy_slope": -0.19990158608018324,
+      "absolute_slope_error": 0.0028084494284892625,
+      "displayed_eigenvalue_count": 156
+    },
+    {
+      "theta": 0.15,
+      "expected_slope": -0.30933624960962325,
+      "fitted_high_energy_slope": -0.3051526877773176,
+      "absolute_slope_error": 0.004183561832305671,
+      "displayed_eigenvalue_count": 158
+    },
+    {
+      "theta": 0.2,
+      "expected_slope": -0.4227932187381618,
+      "fitted_high_energy_slope": -0.4171734918306311,
+      "absolute_slope_error": 0.005619726907530653,
+      "displayed_eigenvalue_count": 161
+    },
+    {
+      "theta": 0.25,
+      "expected_slope": -0.5463024898437905,
+      "fitted_high_energy_slope": -0.540217525252186,
+      "absolute_slope_error": 0.006084964591604458,
+      "displayed_eigenvalue_count": 164
+    }
+  ],
+  "bound_state": {
+    "values": [
+      [
+        -0.2979596378580086,
+        0.0
+      ],
+      [
+        -0.29795963785809154,
+        1.107794411758789e-14
+      ],
+      [
+        -0.29795963785807766,
+        -6.835504384739011e-14
+      ],
+      [
+        -0.29795963785825885,
+        -8.154588115871775e-14
+      ],
+      [
+        -0.29795963785807805,
+        9.37769589900387e-14
+      ],
+      [
+        -0.29795963785807505,
+        1.5107359807586818e-13
+      ]
+    ],
+    "maximum_theta_spread": 2.631956026929741e-13
+  },
+  "resonance_poles": [
+    {
+      "number": 1,
+      "real": 0.620970951051186,
+      "imag": -5.8266627192514356e-05,
+      "gamma": 0.00011653325438502871,
+      "first_exposed_theta": 0.05,
+      "supporting_angles": [
+        0.05,
+        0.1,
+        0.15,
+        0.2,
+        0.25
+      ],
+      "maximum_angle_spread": 1.7098385898828116e-09,
+      "teacher_reference": [
+        0.620970951,
+        -5.8267e-05
+      ],
+      "absolute_reference_error": 3.763049742184222e-10,
+      "multi_angle_stable": true
+    },
+    {
+      "number": 2,
+      "real": 1.327197072677421,
+      "imag": -0.015447318780904305,
+      "gamma": 0.03089463756180861,
+      "first_exposed_theta": 0.05,
+      "supporting_angles": [
+        0.05,
+        0.1,
+        0.15,
+        0.2,
+        0.25
+      ],
+      "maximum_angle_spread": 1.6784179807065477e-08,
+      "teacher_reference": [
+        1.327197073,
+        -0.015447319
+      ],
+      "absolute_reference_error": 3.8994894895004265e-10,
+      "multi_angle_stable": true
+    },
+    {
+      "number": 3,
+      "real": 1.7845828689999608,
+      "imag": -0.173750709638632,
+      "gamma": 0.347501419277264,
+      "first_exposed_theta": 0.1,
+      "supporting_angles": [
+        0.1,
+        0.15,
+        0.2,
+        0.25
+      ],
+      "maximum_angle_spread": 9.801552040944751e-10,
+      "teacher_reference": [
+        1.784582869,
+        -0.17375071
+      ],
+      "absolute_reference_error": 3.61367993223536e-10,
+      "multi_angle_stable": true
+    },
+    {
+      "number": 4,
+      "real": 2.124421891590027,
+      "imag": -0.5647949824176809,
+      "gamma": 1.1295899648353618,
+      "first_exposed_theta": 0.2,
+      "supporting_angles": [
+        0.2,
+        0.25
+      ],
+      "maximum_angle_spread": 1.87835594982458e-13,
+      "teacher_reference": [
+        2.124421892,
+        -0.564794982
+      ],
+      "absolute_reference_error": 5.852650177258637e-10,
+      "multi_angle_stable": true
+    },
+    {
+      "number": 5,
+      "real": 2.455486271508676,
+      "imag": -1.111531571813632,
+      "gamma": 2.223063143627264,
+      "first_exposed_theta": 0.25,
+      "supporting_angles": [
+        0.25
+      ],
+      "maximum_angle_spread": 0.0,
+      "teacher_reference": [
+        2.455486272,
+        -1.111531572
+      ],
+      "absolute_reference_error": 5.25482815224572e-10,
+      "multi_angle_stable": false
+    }
+  ],
+  "part3_cross_check": {
+    "method": "three-point backward finite difference",
+    "dx": 0.0025,
+    "first_peak_energy": 0.62097030266192,
+    "second_peak_energy": 1.32882394672,
+    "pole_minus_part3_peak": [
+      6.483892660558155e-07,
+      -0.0016268740425791073
+    ],
+    "first_numerical_fwhm": 0.0001165339584415781,
+    "second_numerical_fwhm": 0.03201178230616075,
+    "first_breit_wigner_gamma": 0.00011653325438502871,
+    "second_breit_wigner_gamma": 0.03089463756180861,
+    "first_zoom_rmse": 0.002214915471272615,
+    "second_zoom_rmse": 0.06783623436027268,
+    "maximum_unitarity_error": 1.511923253261216e-09
+  },
+  "breit_wigner_formula_checks": [
+    {
+      "resonance": 1,
+      "at_center": 1.0,
+      "at_minus_gamma_over_2": 0.4999999999997013,
+      "at_plus_gamma_over_2": 0.4999999999997013
+    },
+    {
+      "resonance": 2,
+      "at_center": 1.0,
+      "at_minus_gamma_over_2": 0.4999999999999993,
+      "at_plus_gamma_over_2": 0.4999999999999993
+    },
+    {
+      "resonance": 3,
+      "at_center": 1.0,
+      "at_minus_gamma_over_2": 0.5000000000000003,
+      "at_plus_gamma_over_2": 0.5000000000000003
+    },
+    {
+      "resonance": 4,
+      "at_center": 1.0,
+      "at_minus_gamma_over_2": 0.4999999999999999,
+      "at_plus_gamma_over_2": 0.4999999999999999
+    },
+    {
+      "resonance": 5,
+      "at_center": 1.0,
+      "at_minus_gamma_over_2": 0.5,
+      "at_plus_gamma_over_2": 0.5000000000000001
+    }
+  ],
+  "selection_note": "Candidates are separated above the back-rotated continuum at theta=0.25; angle support requires 2 theta >= |arg(E)| + 0.05. Teacher references are used only for audit errors.",
+  "fifth_pole_note": "The broad fifth pole is first exposed only at theta=0.25, so the requested angle set provides single-angle rather than multi-angle stability evidence."
+}

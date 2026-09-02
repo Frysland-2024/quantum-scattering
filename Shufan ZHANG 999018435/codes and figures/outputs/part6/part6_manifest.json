@@ -1,0 +1,39 @@
+{
+  "part": 6,
+  "profile": "teacher_reference",
+  "generated_utc": "2026-08-30T18:41:29.744636+00:00",
+  "config": {
+    "basis_size": 2000,
+    "box_length": 200.0,
+    "quadrature_points": 10000,
+    "mass": 1.0,
+    "hbar": 1.0
+  },
+  "files": [
+    {
+      "name": "part6_breit_wigner_all.png",
+      "bytes": 375405,
+      "sha256": "b97d6e5c7cf10335e91a834088545a3a65475848cc86b9f3b1e06665edb66f49"
+    },
+    {
+      "name": "part6_breit_wigner_zoom.png",
+      "bytes": 225563,
+      "sha256": "0e31eb33191a1b87e0fe5bc0a53fbd6cc00533f097eee6422dac5e6fa846401b"
+    },
+    {
+      "name": "part6_complex_eigenvalues_all.png",
+      "bytes": 269982,
+      "sha256": "632e3b0d8dc82c4945aa9758f7ed91a354b17137b96c9c71eb1e82cd86e4c1c8"
+    },
+    {
+      "name": "part6_complex_eigenvalues_separate.png",
+      "bytes": 251329,
+      "sha256": "7f2d84eed3935f866f6940cc7ccc821eef31349b6a5460b1eb76571ce55e7f26"
+    },
+    {
+      "name": "part6_diagnostics.json",
+      "bytes": 14048,
+      "sha256": "644fe1e60e78419ebc9a0f8cfc0a43cc39979f9be85e5e3ab9da16c2c4b50ae6"
+    }
+  ]
+}

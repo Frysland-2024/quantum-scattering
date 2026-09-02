@@ -1,0 +1,70 @@
+{
+  "scenario": "second_resonance",
+  "continuum_packet_only": true,
+  "energy_center_source": "Part 3 high-resolution E2 (dx=0.0025)",
+  "energy": {
+    "Emin": 1.3278237771,
+    "E0": 1.3288237771,
+    "Emax": 1.3298237770999999
+  },
+  "marker": {
+    "sample_energy": 1.3288237771,
+    "T": 0.9999990060355016,
+    "R": 9.939636972374242e-07,
+    "unitarity_error": 8.01136934569513e-13
+  },
+  "part3_high_resolution_reference": {
+    "E1": 0.6209703037,
+    "E2": 1.3288237771
+  },
+  "basis": {
+    "dx": 0.01,
+    "momentum_points": 301
+  },
+  "packet": {
+    "a0": 0.000177,
+    "sigma_p_amplitude": 0.00025031580054003783,
+    "momentum_norm": 1.0,
+    "integrated_PT": 0.9996622930699903,
+    "integrated_PR": 0.00033770692988426335,
+    "integrated_unitarity_error": 1.254552017826427e-13,
+    "finite_window_spatial_norms": {
+      "t=-20": 0.9999507856961246,
+      "t=2000": 0.9999999430449918,
+      "t=4500": 1.0000010437071492,
+      "t=10000": 0.9999968928337372
+    }
+  },
+  "basis_unitarity": {
+    "maximum_error": 1.8847146066036657e-12
+  },
+  "global_rendering": {
+    "xlim": [
+      -20000.0,
+      20000.0
+    ],
+    "points": 50001,
+    "dx": 0.7999999999992724,
+    "carrier_wavelength": 3.854172739099047,
+    "samples_per_carrier_wavelength": 4.817715923878191,
+    "carrier_numerically_resolved": true,
+    "mode": "resolved complex carrier"
+  },
+  "report_layout": {
+    "snapshots": [
+      -20.0,
+      2000.0,
+      4500.0,
+      10000.0
+    ],
+    "spectrum_xlim": [
+      1.3,
+      1.36
+    ],
+    "figure_pixels": [
+      2400,
+      1350
+    ],
+    "potential_display": "V(x), unscaled"
+  }
+}

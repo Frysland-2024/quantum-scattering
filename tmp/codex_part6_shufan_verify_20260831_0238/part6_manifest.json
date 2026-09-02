@@ -1,0 +1,59 @@
+{
+  "part": 6,
+  "profile": "quick",
+  "generated_utc": "2026-08-30T18:36:07.364065+00:00",
+  "config": {
+    "basis_size": 400,
+    "box_length": 200.0,
+    "quadrature_points": 2401,
+    "mass": 1.0,
+    "hbar": 1.0
+  },
+  "files": [
+    {
+      "name": "part6_breit_wigner_all.csv",
+      "bytes": 703288,
+      "sha256": "9afa3c52e0945dc262f0975292ec3770f5b67005301e1410329793f1863d8d0a"
+    },
+    {
+      "name": "part6_breit_wigner_all.png",
+      "bytes": 375401,
+      "sha256": "dec0048698e5f43f4680688a5ecf43ba0995602b15da9ce7fc36a09edf98571f"
+    },
+    {
+      "name": "part6_breit_wigner_zoom.csv",
+      "bytes": 474216,
+      "sha256": "be117e259e3cfe55b7dc61476d93feffbec2217727aeeb67b124cccbbfb499bb"
+    },
+    {
+      "name": "part6_breit_wigner_zoom.png",
+      "bytes": 225559,
+      "sha256": "bbaa5189535a512a2853cc73c3202f5c8641a4ce25894f5b797533d9c2728368"
+    },
+    {
+      "name": "part6_complex_eigenvalues_all.png",
+      "bytes": 269246,
+      "sha256": "a266bf579d2e518418217c8aacd29a53bb556828d6ce19f8593ed656133925cd"
+    },
+    {
+      "name": "part6_complex_eigenvalues_separate.png",
+      "bytes": 250505,
+      "sha256": "eefd44dbe4dc126fdca25e658fea5466b057889da88c8654703ed3ffb3314a91"
+    },
+    {
+      "name": "part6_complex_spectrum.csv",
+      "bytes": 147908,
+      "sha256": "2c0d29d98b0019f2526fa466fbf48832595fb0e47cde7b35eb1b80be16b02a57"
+    },
+    {
+      "name": "part6_diagnostics.json",
+      "bytes": 13990,
+      "sha256": "c85744eff329d158c20ab8d4fab0b267a033620cbc24f8e778f9c6cf49c656e9"
+    },
+    {
+      "name": "part6_resonance_poles.csv",
+      "bytes": 1010,
+      "sha256": "7f15358028bc6a6142dbf328cc86fe2563177f1d74c89fc384feaae3e21d0d65"
+    }
+  ]
+}

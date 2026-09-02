@@ -1,0 +1,16 @@
+{
+  "profile": "quick",
+  "artifacts": [
+    "harmonic_oscillator_validation.png",
+    "harmonic_oscillator_levels.csv",
+    "short_range_first11_combined.png",
+    "short_range_first11_separate.png",
+    "short_range_first11.csv",
+    "short_range_all_states.png",
+    "three_localized_states.png",
+    "localized_states.csv",
+    "part5_diagnostics.json"
+  ],
+  "static_figure_count": 5,
+  "diagnostics": "part5_diagnostics.json"
+}

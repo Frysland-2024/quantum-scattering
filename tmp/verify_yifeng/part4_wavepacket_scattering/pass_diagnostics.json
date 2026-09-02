@@ -1,0 +1,59 @@
+{
+  "case": "pass",
+  "marker_energies": [
+    2.5,
+    2.7,
+    2.9
+  ],
+  "momenta": [
+    2.23606797749979,
+    2.32379000772445,
+    2.4083189157584592
+  ],
+  "basis_momentum_interval": [
+    2.16257000772445,
+    2.4850100077244504
+  ],
+  "momentum_sigma_a0": 0.02687,
+  "reported_sigma_p": 0.03799991842096507,
+  "marker_transmission": [
+    0.9960722343075532,
+    0.999849709312557,
+    0.9999595046895948
+  ],
+  "marker_reflection": [
+    0.003927765690669026,
+    0.00015029068777469627,
+    4.049531210114165e-05
+  ],
+  "marker_unitarity_error": [
+    1.7778001293322632e-12,
+    3.3173463975799677e-13,
+    1.6959766924173891e-12
+  ],
+  "part3_second_peak_energy": 1.32882394672,
+  "part3_first_peak_energy": 0.62097030266192,
+  "part3_peak_dx": 0.0025,
+  "part3_peak_x_interval": [
+    -50.0,
+    50.0
+  ],
+  "wavepacket_basis_dx": 0.02,
+  "energy_center_source": "fixed_case_value",
+  "snapshot_count": 4,
+  "position_evaluation": "precomputed_matrix",
+  "incident_spectral_norm": 1.0,
+  "overall_transmission": 0.9997042150473086,
+  "overall_reflection": 0.00029578495287343196,
+  "overall_unitarity_error": 1.8207657603852567e-13,
+  "basis_center_energy": 2.7,
+  "basis_center_transmission": 0.9998510757092445,
+  "first_resonance_acceptance": null,
+  "finite_plot_norms": [
+    0.9999833959958613,
+    0.999522060849861,
+    0.9998477192909018,
+    0.9999998878149517
+  ],
+  "continuum_only": true
+}

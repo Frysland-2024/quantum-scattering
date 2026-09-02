@@ -1,0 +1,62 @@
+{
+  "method": {
+    "name": "L-8 particle-in-a-box sine-basis matrix diagonalization",
+    "basis": "sqrt(2/L) sin[j*pi*(x+L/2)/L]",
+    "kinetic": {
+      "short_range_and_resonances": "delta_ij*j^2*pi^2/(2L^2)",
+      "harmonic_figure": "spectral",
+      "teacher_grid_definition": "delta_ij*[1-cos(j*pi*dx/L)]/dx^2, dx=L/(N-1)"
+    },
+    "potential_matrix": "integral phi_i(x)*V(x)*phi_j(x) dx",
+    "implementation": "DCT-I trapezoidal cosine moments; no coordinate finite-difference Hamiltonian"
+  },
+  "profile": "quick",
+  "config": {
+    "harmonic": {
+      "basis_size": 240,
+      "box_length": 80.0,
+      "quadrature_points": 1201,
+      "n_states": 10
+    },
+    "short_range": {
+      "basis_size": 180,
+      "box_length": 120.0,
+      "quadrature_points": 1601,
+      "n_states": 20
+    },
+    "all_states": {
+      "basis_size": 121,
+      "box_length": 120.0,
+      "quadrature_points": 1601,
+      "n_states": null
+    },
+    "localized": {
+      "basis_size": 400,
+      "box_length": 200.0,
+      "quadrature_points": 2401,
+      "n_states": 125
+    }
+  },
+  "part3_reference_peaks": {
+    "E1": 0.6209703027,
+    "E2": 1.3288239467
+  },
+  "harmonic": {
+    "kinetic_scheme": "spectral",
+    "grid_spacing_dx": 0.06666666666666667,
+    "maximum_absolute_energy_error": 1.9806378759312793e-13,
+    "rms_energy_error": 8.33672542202701e-14,
+    "energies": [
+      -0.2999999999999936,
+      0.700000000000012,
+      1.700000000000017,
+      2.7000000000000237,
+      3.700000000000028,
+      4.700000000000198,
+      5.700000000000042,
+      6.699999999999884,
+      7.700000000000051,
+      8.699999999999896
+    ]
+  }
+}
