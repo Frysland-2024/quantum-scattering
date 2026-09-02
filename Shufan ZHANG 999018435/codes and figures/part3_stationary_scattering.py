@@ -12,15 +12,27 @@ def peak(lo,hi):
     r=minimize_scalar(lambda e:-prob(float(e)),bounds=(lo,hi),method='bounded',options={'xatol':1e-13,'maxiter':300}); return float(r.x),float(-r.fun)
 
 
+def find_resonance_peaks():
+    """Return the two Part 3 transmission peaks from the numerical scan."""
+    return peak(.60,.64), peak(1.28,1.38)
+
+
+def clean_old_metadata():
+    """Remove non-deliverable metadata left by older runs."""
+    try:
+        (OUT/'part3_peak_summary.txt').unlink()
+    except FileNotFoundError:
+        pass
+
+
 def main_profile():
-    e1,p1=peak(.60,.64); e2,p2=peak(1.28,1.38)
+    (e1,p1),(e2,p2)=find_resonance_peaks()
     E=np.unique(np.r_[np.linspace(.002,3,2200),np.linspace(e1-.004,e1+.004,1600),np.linspace(e2-.10,e2+.10,1500),e1,e2])
     s=appendix_v_scan(E,dx=DX); TT=np.abs(s.T)**2
     fig,ax=plt.subplots(figsize=(9,5)); ax.plot(E,TT,color='black'); ax.scatter([e1,e2],[p1,p2],color='red',zorder=3); ax.text(e1+.03,.99,f'E = {e1:.4f}',color='red'); ax.text(e2+.03,.99,f'E = {e2:.4f}',color='red'); ax.set_xlim(0,3); ax.set_ylim(-.05,1.1); ax.set_xlabel('Energy'); ax.set_ylabel('Transmission Probability'); ax.grid(linestyle='--',alpha=.4); fig.tight_layout(); fig.savefig(OUT/'part3_transmission_profile.png',dpi=180); plt.close(fig)
     for name,e,lo,hi in [('first',e1,.6200,.6220),('second',e2,1.20,1.55)]:
         Ez=np.linspace(lo,hi,2400); z=appendix_v_scan(Ez,dx=DX); P=np.abs(z.T)**2
         fig,ax=plt.subplots(figsize=(9,5)); ax.plot(Ez,P,color='black'); ax.scatter([e],[prob(e)],color='red',zorder=3); ax.text(e+(hi-lo)*.08,.99,f'E = {e:.4f}',color='red',fontsize=13); ax.set_xlabel('Energy'); ax.set_ylabel(r'$|T|^2$'); ax.set_ylim(-.05,1.1); ax.grid(linestyle='--',alpha=.4); ax.set_title(f'Transmission zoom near Peak{1 if name=="first" else 2}, E={e:.6f}'); fig.tight_layout(); fig.savefig(OUT/f'part3_{name}_transmission_peak.png',dpi=180); plt.close(fig)
-    (OUT/'part3_peak_summary.txt').write_text(f'dx={DX}\nE1={e1:.10f}, |T|^2={p1:.12f}\nE2={e2:.10f}, |T|^2={p2:.12f}\nmax unitarity error={s.probability_error.max():.3e}\n',encoding='utf-8')
     return e1,e2
 
 
@@ -33,7 +45,8 @@ def wf(energies,filename,title):
 
 
 def main():
-    ensure_dir(OUT); e1,e2=main_profile()
+    ensure_dir(OUT); clean_old_metadata(); e1,e2=main_profile()
     wf([0.4,e1,0.75],'part3_continuum_states_first_peak.png','continuum wavefunctions (around the first peak)')
     wf([1.0,e2,1.6],'part3_continuum_states_second_peak.png','continuum wavefunctions (around the second peak)')
+    clean_old_metadata()
 if __name__=='__main__': main()
