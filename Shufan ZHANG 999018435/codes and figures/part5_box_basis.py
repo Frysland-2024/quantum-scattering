@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 import argparse
 import json
+import shutil
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -67,7 +68,12 @@ def profiles(quick: bool) -> dict[str, BasisConfig]:
 
 
 def orient_states_for_plot(states: np.ndarray) -> np.ndarray:
-    """Choose a deterministic eigenvector sign for repeatable plots."""
+    """Choose a deterministic eigenvector phase for lecture-style plots.
+
+    Eigenvectors are only defined up to an overall sign. Making the leftmost
+    largest-magnitude lobe positive keeps repeated runs visually stable and
+    reproduces the orientation used in the reference Part 5 figures.
+    """
     oriented = np.asarray(states, dtype=float).copy()
     if oriented.ndim == 1:
         oriented = oriented[:, None]
@@ -86,38 +92,53 @@ def parameter_title(config: BasisConfig) -> str:
     )
 
 
-def scale_state_for_display(state: np.ndarray, height: float) -> np.ndarray:
-    """Rescale a normalized eigenstate only for an energy-offset display.
-
-    The numerical state itself is never changed. This is purely a plotting
-    scale so the different box-normalized states remain visible in the same
-    figure, matching the qualitative energy-offset sketches used in Lecture 8.
-    """
+def scaled_state_for_display(state: np.ndarray, height: float = 0.28) -> np.ndarray:
+    """Rescale one eigenstate only for plotting, so every visible curve is readable."""
     state = np.asarray(state, dtype=float)
-    maximum = float(np.max(np.abs(state)))
-    if maximum <= 1e-15:
+    amplitude = float(np.max(np.abs(state)))
+    if amplitude < 1e-14:
         return np.zeros_like(state)
-    return state * (height / maximum)
+    return state * (height / amplitude)
 
 
-def add_barrier_guides(ax: plt.Axes) -> None:
-    """Mark the two barrier maxima at x = +/-sqrt(11.6)."""
-    for sign in (-1.0, 1.0):
-        ax.axvline(
-            sign * BARRIER_HALF_WIDTH,
-            color="0.72",
-            linestyle="--",
-            linewidth=0.8,
-            alpha=0.8,
-            zorder=0,
-        )
+def energy_plot_limits(
+    potential: np.ndarray,
+    energies: np.ndarray,
+    *,
+    lower_pad: float = 0.15,
+    upper_pad: float = 0.45,
+) -> tuple[float, float]:
+    return float(np.min(potential) - lower_pad), float(np.max(energies) + upper_pad)
 
 
-def save_figure(fig: plt.Figure, output: Path, *names: str, dpi: int = 190) -> None:
-    """Save one figure under the current and teacher-style filenames."""
-    for name in dict.fromkeys(names):
-        fig.savefig(output / name, dpi=dpi, bbox_inches="tight")
-    plt.close(fig)
+def add_barrier_guides(ax) -> None:
+    ax.axvline(-BARRIER_HALF_WIDTH, color="0.80", lw=0.8, ls="--", zorder=1)
+    ax.axvline(+BARRIER_HALF_WIDTH, color="0.80", lw=0.8, ls="--", zorder=1)
+
+
+def plot_state_on_energy(
+    ax,
+    x: np.ndarray,
+    state: np.ndarray,
+    energy: float,
+    *,
+    height: float = 0.28,
+    color=None,
+    lw: float = 1.0,
+    alpha: float = 1.0,
+    show_energy_line: bool = True,
+):
+    scaled = scaled_state_for_display(state, height=height)
+    if show_energy_line:
+        ax.axhline(energy, color="0.85", lw=0.6, ls="-", zorder=1)
+    ax.plot(x, energy + scaled, color=color, lw=lw, alpha=alpha, zorder=3)
+    return scaled
+
+
+def save_with_aliases(fig, primary: Path, *aliases: str, dpi: int = 190) -> None:
+    fig.savefig(primary, dpi=dpi)
+    for alias in aliases:
+        shutil.copyfile(primary, primary.with_name(alias))
 
 
 def harmonic_validation(
@@ -139,24 +160,27 @@ def harmonic_validation(
     states = orient_states_for_plot(
         reconstruct_states(x, result.coefficients[:, :10], config.box_length)
     )
-
-    fig, ax = plt.subplots(figsize=(11.0, 7.2), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(11.0, 6.8), constrained_layout=True)
     potential = harmonic_potential(x)
-    ax.plot(x, potential, color="0.35", lw=1.25, label=r"$V(x)=0.5x^2-0.8$")
-
+    ax.plot(x, potential, color="0.42", lw=1.2, label=r"$V(x)=0.5x^2-0.8$")
     for index in range(10):
-        energy = float(result.energies[index])
-        plotted = scale_state_for_display(states[:, index], height=0.34)
-        ax.axhline(energy, color="0.88", lw=0.55, zorder=0)
-        ax.plot(x, energy + plotted, lw=1.05)
+        plot_state_on_energy(
+            ax,
+            x,
+            states[:, index],
+            result.energies[index],
+            height=0.30,
+            lw=1.1,
+            show_energy_line=True,
+        )
         ax.text(
-            6.25,
-            energy + 0.04,
-            rf"$n={index},\ E_n={energy:.6f}$",
-            fontsize=7.8,
+            6.2,
+            result.energies[index] + 0.06,
+            rf"$n={index},\ E_n={result.energies[index]:.6f}$",
+            fontsize=8.0,
+            ha="left",
             va="bottom",
         )
-
     ax.set(
         xlim=(-10.0, 10.0),
         ylim=(-1.0, 10.0),
@@ -164,14 +188,10 @@ def harmonic_validation(
         ylabel="Energy + scaled eigenfunction",
         title=parameter_title(config),
     )
-    ax.legend(loc="upper left", fontsize=8.3)
-    save_figure(
-        fig,
-        output,
-        "part5_harmonic_validation.png",
-        "harmonic_oscillator_validation.png",
-        dpi=190,
-    )
+    ax.legend(loc="upper left", fontsize=8.0)
+    path = output / "part5_harmonic_validation.png"
+    save_with_aliases(fig, path, "harmonic_oscillator_validation.png")
+    plt.close(fig)
     return {
         "kinetic_scheme": kinetic_scheme,
         "grid_spacing_dx": config.box_length / (config.quadrature_points - 1),
@@ -195,84 +215,115 @@ def short_range_first_states(output: Path, config: BasisConfig) -> dict:
     )
     potential = model_potential(x)
     potential_label = r"$V(x)=(0.5x^2-0.8)e^{-0.1x^2}$"
+    view_mask = np.abs(x) <= 24.0
+    x_view = x[view_mask]
+    potential_view = potential[view_mask]
+    energies11 = result.energies[:11]
+    ymin, ymax = energy_plot_limits(potential_view, energies11, lower_pad=0.12, upper_pad=0.28)
 
-    fig, ax = plt.subplots(figsize=(11.8, 7.2), constrained_layout=True)
-    ax.plot(x, potential, color="black", lw=1.15, label=potential_label)
+    # Combined figure: downplay the dense near-zero doublets and highlight the structure.
+    fig, ax = plt.subplots(figsize=(11.8, 7.0), constrained_layout=True)
+    ax.plot(x_view, potential_view, color="0.25", lw=1.4, label=potential_label, zorder=2)
     add_barrier_guides(ax)
-    for index in range(11):
-        ax.plot(
-            x,
-            result.energies[index] + states[:, index],
-            lw=0.85,
-            alpha=0.88,
-            label=rf"$\psi_{{{index}}}(x),\ E={result.energies[index]:.8f}$",
+    for index in range(1, 11):
+        plot_state_on_energy(
+            ax,
+            x_view,
+            states[view_mask, index],
+            result.energies[index],
+            height=0.10,
+            lw=0.95,
+            alpha=0.90,
+            show_energy_line=True,
         )
+    plot_state_on_energy(
+        ax,
+        x_view,
+        states[view_mask, 0],
+        result.energies[0],
+        height=0.42,
+        lw=1.2,
+        alpha=1.0,
+        show_energy_line=True,
+    )
+    for index in range(11):
+        x_text = 12.8 if index % 2 == 0 else 16.5
+        y_offset = 0.025 if index == 0 else 0.012 * ((index % 2) * 2 - 1)
+        label = rf"$n={index},\ E={result.energies[index]:.6f}$"
+        ax.text(x_text, result.energies[index] + y_offset, label, fontsize=7.6, ha="left", va="center")
     ax.set(
-        xlim=(-config.box_length / 2.0, config.box_length / 2.0),
-        ylim=(-0.9, 1.9),
+        xlim=(-24.0, 24.0),
+        ylim=(ymin, ymax),
         xlabel="x",
-        ylabel="Energy + eigenfunction",
+        ylabel="Energy + scaled eigenfunction",
         title=parameter_title(config),
     )
-    ax.legend(loc="upper right", fontsize=6.7, ncol=1, framealpha=0.9)
-    save_figure(
+    ax.legend(loc="upper right", fontsize=8.0)
+    save_with_aliases(
         fig,
-        output,
-        "part5_short_range_first11_combined.png",
+        output / "part5_short_range_first11_combined.png",
         "short_range_first11_combined.png",
-        dpi=190,
     )
+    plt.close(fig)
 
-    fig = plt.figure(figsize=(14.0, 13.2))
-    grid = fig.add_gridspec(6, 2, hspace=0.48, wspace=0.16)
+    # Separate panels remain the primary pedagogical figure.
+    fig = plt.figure(figsize=(14.0, 11.0), constrained_layout=True)
+    grid = fig.add_gridspec(6, 2, height_ratios=(1, 1, 1, 1, 1, 1.25))
     panel_order = ((9, 10), (7, 8), (5, 6), (3, 4), (1, 2))
     for row, pair in enumerate(panel_order):
         for column, index in enumerate(pair):
             panel = fig.add_subplot(grid[row, column])
-            panel.plot(x, potential, color="0.55", lw=0.8)
+            panel.plot(x_view, potential_view, color="0.72", lw=0.8)
             add_barrier_guides(panel)
             color = "tab:blue" if column == 0 else "tab:green"
-            plotted = scale_state_for_display(states[:, index], height=0.28)
-            energy = float(result.energies[index])
-            panel.axhline(energy, color="0.88", lw=0.55, zorder=0)
-            panel.plot(x, energy + plotted, color=color, lw=1.05)
-            panel.set(
-                xlim=(-config.box_length / 2.0, config.box_length / 2.0),
-                ylim=(-0.9, 1.9),
-                ylabel="E + scaled psi",
+            plot_state_on_energy(
+                panel,
+                x_view,
+                states[view_mask, index],
+                result.energies[index],
+                height=0.18,
+                color=color,
+                lw=1.0,
+                alpha=1.0,
+                show_energy_line=True,
             )
-            panel.set_title(
-                rf"$\psi_{{{index}}}(x),\ E={energy:.8f}$",
-                fontsize=8.5,
-                pad=3,
+            panel.set(
+                xlim=(-24.0, 24.0),
+                ylim=(ymin, ymax),
+                ylabel="E + scaled ψ",
             )
             panel.tick_params(labelsize=7)
-            if row == len(panel_order) - 1:
-                panel.set_xlabel("x", fontsize=8)
-
+            panel.set_title(rf"$\psi_{{{index}}}(x),\ E={result.energies[index]:.8f}$", fontsize=8.0)
     bound_ax = fig.add_subplot(grid[5, :])
-    bound_ax.plot(x, potential, color="0.55", lw=0.8)
+    bound_ax.plot(x_view, potential_view, color="0.72", lw=0.8)
     add_barrier_guides(bound_ax)
-    bound_energy = float(result.energies[0])
-    bound_plot = scale_state_for_display(states[:, 0], height=0.30)
-    bound_ax.axhline(bound_energy, color="0.88", lw=0.55, zorder=0)
-    bound_ax.plot(x, bound_energy + bound_plot, color="tab:green", lw=1.1)
-    bound_ax.set(
-        xlim=(-config.box_length / 2.0, config.box_length / 2.0),
-        ylim=(-0.9, 1.9),
-        xlabel="x",
-        ylabel="E + scaled psi",
+    plot_state_on_energy(
+        bound_ax,
+        x_view,
+        states[view_mask, 0],
+        result.energies[0],
+        height=0.42,
+        color="tab:green",
+        lw=1.0,
+        alpha=1.0,
+        show_energy_line=True,
     )
-    bound_ax.set_title(rf"$\psi_0(x),\ E={bound_energy:.8f}$", fontsize=9.0, pad=3)
+    bound_ax.set(
+        xlim=(-24.0, 24.0),
+        ylim=(ymin, ymax),
+        xlabel="x",
+        ylabel="E + scaled ψ",
+    )
     bound_ax.tick_params(labelsize=7)
-    fig.suptitle(parameter_title(config), fontsize=13, y=0.995)
-    save_figure(
+    bound_ax.set_title(rf"$\psi_0(x),\ E={result.energies[0]:.8f}$", fontsize=8.0)
+    fig.suptitle(parameter_title(config), fontsize=13)
+    save_with_aliases(
         fig,
-        output,
-        "part5_short_range_first11_panels.png",
+        output / "part5_short_range_first11_panels.png",
         "short_range_first11_separate.png",
         dpi=180,
     )
+    plt.close(fig)
     return {
         "ground_energy": float(result.energies[0]),
         "first_11_energies": result.energies[:11].tolist(),
@@ -291,46 +342,72 @@ def all_states_overlay(output: Path, config: BasisConfig) -> dict:
     states = orient_states_for_plot(
         reconstruct_states(x, result.coefficients, config.box_length)
     )
+    potential = model_potential(x)
+    view_mask = np.abs(x) <= 24.0
+    x_view = x[view_mask]
+    potential_view = potential[view_mask]
+
     fig, ax = plt.subplots(figsize=(11.0, 8.0), constrained_layout=True)
     ax.plot(
-        x,
-        model_potential(x),
-        color="black",
-        lw=1.1,
+        x_view,
+        potential_view,
+        color="k",
+        lw=1.25,
         label=r"$V(x)=(0.5x^2-0.8)e^{-0.1x^2}$",
         zorder=4,
     )
     add_barrier_guides(ax)
-    for index, energy in enumerate(result.energies):
-        ax.plot(
-            x,
-            energy + states[:, index],
-            alpha=0.30,
-            lw=0.45,
-            color="tab:blue",
-            zorder=1,
+
+    # Plot the dense continuum pseudostates with a very small display amplitude.
+    for index, energy in enumerate(result.energies[1:], start=1):
+        curve = scaled_state_for_display(states[view_mask, index], height=0.045)
+        ax.plot(x_view, energy + curve, color="#6fa8dc", alpha=0.18, lw=0.45, zorder=2)
+
+    # Emphasize the bound state and a few representative low-lying pseudostates.
+    representative = [0, 1, 2, 3, 4, 5]
+    for index in representative:
+        height = 0.34 if index == 0 else 0.08
+        color = "#0b5394" if index > 0 else "#3d85c6"
+        plot_state_on_energy(
+            ax,
+            x_view,
+            states[view_mask, index],
+            result.energies[index],
+            height=height,
+            color=color,
+            lw=1.0 if index > 0 else 1.2,
+            alpha=0.95,
+            show_energy_line=(index == 0),
         )
+
     ax.text(
-        0.31 * config.box_length,
-        -0.45,
+        8.5,
+        result.energies[0] + 0.06,
         rf"Bound state $E_0={result.energies[0]:.6f}$",
         fontsize=10,
+        color="black",
+    )
+    ax.text(
+        -22.3,
+        5.25,
+        "dense box pseudostates",
+        fontsize=9,
+        color="#4a86e8",
     )
     ax.set(
-        xlim=(-config.box_length / 2.0, config.box_length / 2.0),
-        ylim=(-1.0, 5.6),
+        xlim=(-24.0, 24.0),
+        ylim=(-0.75, 5.6),
         xlabel="x",
-        ylabel="Energy + eigenfunction",
+        ylabel="Energy + scaled eigenfunction",
         title=parameter_title(config),
     )
-    ax.legend(loc="upper right")
-    save_figure(
+    ax.legend(loc="upper right", fontsize=8.0)
+    save_with_aliases(
         fig,
-        output,
-        "part5_box_spectrum_all_states.png",
+        output / "part5_box_spectrum_all_states.png",
         "short_range_all_states.png",
-        dpi=190,
     )
+    plt.close(fig)
     return {
         "state_count": int(result.energies.size),
         "minimum_energy": float(result.energies[0]),
@@ -343,10 +420,8 @@ def localization_metrics(result, config: BasisConfig, peaks: dict[str, float]) -
     norms = np.ones(result.energies.size)
     basis_parity = (-1.0) ** (np.arange(1, config.basis_size + 1) + 1)
     parity = np.sum(result.coefficients**2 * basis_parity[:, None], axis=0)
-    candidate_mask = (
-        (np.abs(result.energies - peaks["E1"]) <= 0.08)
-        | (np.abs(result.energies - peaks["E2"]) <= 0.08)
-    )
+    candidate_mask = ((np.abs(result.energies - peaks["E1"]) <= 0.08)
+                      | (np.abs(result.energies - peaks["E2"]) <= 0.08))
     candidate_indices = np.unique(np.r_[0, np.flatnonzero(candidate_mask)])
     x_central = np.linspace(-12.0, 12.0, 2401)
     candidate_states = reconstruct_states(
@@ -371,16 +446,10 @@ def localization_metrics(result, config: BasisConfig, peaks: dict[str, float]) -
 def select_triplet(result, config: BasisConfig, peaks: dict[str, float]):
     metrics = localization_metrics(result, config, peaks)
     first_index, first_scores = select_localized_resonance(
-        result.energies,
-        metrics["barrier_probability"],
-        metrics["parity_expectation"],
-        peaks["E1"],
+        result.energies, metrics["barrier_probability"], metrics["parity_expectation"], peaks["E1"]
     )
     second_index, second_scores = select_localized_resonance(
-        result.energies,
-        metrics["barrier_probability"],
-        metrics["parity_expectation"],
-        peaks["E2"],
+        result.energies, metrics["barrier_probability"], metrics["parity_expectation"], peaks["E2"]
     )
     return metrics, first_index, second_index, first_scores, second_scores
 
@@ -424,21 +493,11 @@ def localized_states(output: Path, config: BasisConfig, peaks: dict[str, float])
     selected_states = orient_states_for_plot(
         reconstruct_states(x, result.coefficients[:, selected], config.box_length)
     )
-
-    center = int(np.argmin(np.abs(x)))
-    if selected_states[center, 0] < 0.0:
-        selected_states[:, 0] *= -1.0
-    left_core = np.flatnonzero((x >= -3.0) & (x < 0.0))
-    first_pivot = int(left_core[np.argmax(np.abs(selected_states[left_core, 1]))])
-    if selected_states[first_pivot, 1] < 0.0:
-        selected_states[:, 1] *= -1.0
-    if selected_states[center, 2] > 0.0:
-        selected_states[:, 2] *= -1.0
-
-    fig, ax = plt.subplots(figsize=(11.5, 7.0), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(11.5, 6.8), constrained_layout=True)
+    potential = model_potential(x)
     ax.plot(
         x,
-        model_potential(x),
+        potential,
         "k",
         lw=1.2,
         label=r"$V(x)=(0.5x^2-0.8)e^{-0.1x^2}$",
@@ -447,73 +506,69 @@ def localized_states(output: Path, config: BasisConfig, peaks: dict[str, float])
     colors = ("tab:red", "tab:blue", "tab:green")
     display_heights = (0.30, 0.30, 0.30)
     for panel, (index, color, height) in enumerate(zip(selected, colors, display_heights)):
-        energy = float(result.energies[index])
-        plotted = scale_state_for_display(selected_states[:, panel], height=height)
-        ax.axhline(energy, color="0.86", lw=0.65, zorder=0)
-        ax.plot(x, energy + plotted, color=color, lw=1.35)
-
-    text_x = 7.0
+        plot_state_on_energy(
+            ax,
+            x,
+            selected_states[:, panel],
+            result.energies[index],
+            height=height,
+            color=color,
+            lw=1.35,
+            alpha=1.0,
+            show_energy_line=True,
+        )
     ax.text(
-        text_x,
-        result.energies[0] + 0.05,
+        7.0,
+        result.energies[0] + 0.08,
         rf"Bound state $E_0={result.energies[0]:.6f}$",
-        color=colors[0],
-        fontsize=10,
+        color="tab:red",
+        fontsize=11,
     )
     ax.text(
-        text_x,
-        result.energies[first_index] + 0.05,
+        7.0,
+        result.energies[first_index] + 0.08,
         rf"First resonance $E_{{{first_index}}}={result.energies[first_index]:.6f}$",
-        color=colors[1],
-        fontsize=10,
+        color="tab:blue",
+        fontsize=11,
     )
     ax.text(
-        text_x,
-        result.energies[second_index] + 0.05,
+        7.0,
+        result.energies[second_index] + 0.08,
         rf"Second resonance $E_{{{second_index}}}={result.energies[second_index]:.6f}$",
-        color=colors[2],
-        fontsize=10,
+        color="tab:green",
+        fontsize=11,
     )
     ax.set(
         xlim=(-20.0, 20.0),
         ylim=(-1.0, 2.0),
         xlabel="x",
         ylabel="Energy + scaled eigenfunction",
-        title=(
-            "Bound and resonance eigenfunctions, "
-            f"J={config.basis_size}, L={config.box_length:g}, "
-            f"N={config.quadrature_points}"
-        ),
+        title=("Bound and resonance eigenfunctions, "
+               f"J={config.basis_size}, L={config.box_length:g}, "
+               f"N={config.quadrature_points}"),
     )
     ax.legend(loc="upper right")
-    save_figure(
+    save_with_aliases(
         fig,
-        output,
-        "part5_localized_states.png",
+        output / "part5_localized_states.png",
         "three_localized_states.png",
-        dpi=190,
     )
-
+    plt.close(fig)
     rows: list[dict] = []
     for index, label, target in zip(selected, labels, targets):
-        rows.append(
-            {
-                "label": label,
-                "state_index_zero_based": index,
-                "state_number_one_based": index + 1,
-                "energy": f"{result.energies[index]:.15g}",
-                "target_energy": "" if target is None else f"{target:.15g}",
-                "energy_difference": ""
-                if target is None
-                else f"{result.energies[index] - target:.15g}",
-                "finite_grid_norm": f"{metrics['norm'][index]:.15g}",
-                "barrier_half_width_sqrt_11p6": f"{BARRIER_HALF_WIDTH:.15g}",
-                "central_probability_barrier_window": f"{metrics['barrier_probability'][index]:.15g}",
-                "central_probability_abs_x_le_12": f"{metrics['wide_probability'][index]:.15g}",
-                "parity_expectation": f"{metrics['parity_expectation'][index]:.15g}",
-            }
-        )
-
+        rows.append({
+            "label": label,
+            "state_index_zero_based": index,
+            "state_number_one_based": index + 1,
+            "energy": f"{result.energies[index]:.15g}",
+            "target_energy": "" if target is None else f"{target:.15g}",
+            "energy_difference": "" if target is None else f"{result.energies[index] - target:.15g}",
+            "finite_grid_norm": f"{metrics['norm'][index]:.15g}",
+            "barrier_half_width_sqrt_11p6": f"{BARRIER_HALF_WIDTH:.15g}",
+            "central_probability_barrier_window": f"{metrics['barrier_probability'][index]:.15g}",
+            "central_probability_abs_x_le_12": f"{metrics['wide_probability'][index]:.15g}",
+            "parity_expectation": f"{metrics['parity_expectation'][index]:.15g}",
+        })
     smaller_j = max(130, min(600, config.basis_size // 2))
     variant_n = min(config.n_states or 125, smaller_j)
     variant_grid = max(2 * smaller_j + 1, min(config.quadrature_points, 4001))
@@ -529,20 +584,14 @@ def localized_states(output: Path, config: BasisConfig, peaks: dict[str, float])
             n_states=variant.n_states,
         )
         convergence_rows.append(convergence_row(label, variant_result, variant, peaks))
-
     return {
         "bound": rows[0],
         "first_resonance": rows[1],
         "second_resonance": rows[2],
         "selection": {
-            "rule": (
-                "maximize barrier-window probability times energy-proximity and parity-purity "
-                "factors within +/-0.08 of each Part 3 peak"
-            ),
-            "barrier_window": {
-                "absolute_x_le": BARRIER_HALF_WIDTH,
-                "origin": "barrier maxima sqrt(11.6)",
-            },
+            "rule": ("maximize barrier-window probability times energy-proximity and parity-purity "
+                     "factors within +/-0.08 of each Part 3 peak"),
+            "barrier_window": {"absolute_x_le": BARRIER_HALF_WIDTH, "origin": "barrier maxima sqrt(11.6)"},
             "wide_audit_window": {"absolute_x_le": 12.0},
             "candidate_state_indices": metrics["candidate_indices"].tolist(),
             "first_candidate_scores": first_scores.tolist(),
@@ -557,9 +606,7 @@ def main() -> None:
     parser.add_argument("--quick", action="store_true", help="reduced basis/grid profile for checks")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument(
-        "--only",
-        choices=("all", "harmonic", "short-range", "spectrum", "localized"),
-        default="all",
+        "--only", choices=("all", "harmonic", "short-range", "spectrum", "localized"), default="all"
     )
     parser.add_argument("--localized-basis", type=int, help="override the localized-state basis size")
     parser.add_argument("--localized-grid", type=int, help="override its endpoint-inclusive quadrature grid")
@@ -567,10 +614,8 @@ def main() -> None:
         "--harmonic-kinetic",
         choices=("teacher_grid", "spectral"),
         default="teacher_grid",
-        help=(
-            "kinetic dispersion for the harmonic validation; teacher_grid uses "
-            "dx=L/(N-1) and reproduces the lecture's printed energies"
-        ),
+        help=("kinetic dispersion for the harmonic validation; teacher_grid uses "
+              "dx=L/(N-1) and reproduces the lecture's printed energies"),
     )
     args = parser.parse_args()
     output = ensure_dir(args.output_dir.resolve())
@@ -601,18 +646,12 @@ def main() -> None:
         "profile": "quick" if args.quick else "reference",
         "config": {name: asdict(value) for name, value in config.items()},
         "part3_reference_peaks": peaks,
-        "plotting_note": (
-            "Eigenfunctions in the harmonic, separated-state, and localized figures are "
-            "rescaled for visibility only; numerical energies and normalized states are unchanged."
-        ),
     }
     if args.only in ("all", "harmonic"):
         diagnostics["harmonic"] = harmonic_validation(
             output, config["harmonic"], args.harmonic_kinetic
         )
-        print(
-            f"harmonic max error: {diagnostics['harmonic']['maximum_absolute_energy_error']:.3e}"
-        )
+        print(f"harmonic max error: {diagnostics['harmonic']['maximum_absolute_energy_error']:.3e}")
     if args.only in ("all", "short-range"):
         diagnostics["short_range"] = short_range_first_states(output, config["short_range"])
         print(f"short-range ground energy: {diagnostics['short_range']['ground_energy']:.9f}")
