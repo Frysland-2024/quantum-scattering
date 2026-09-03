@@ -27,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     started = time.perf_counter()
     created = generate_part3(args.output_dir)
     elapsed = time.perf_counter() - started
-    print(f"Part 3 generated {len(created)} artifacts in {elapsed:.2f} s")
+    print(f"Part 3 generated {len(created)} figures in {elapsed:.2f} s")
     for path in created:
         print(path.resolve())
     return 0

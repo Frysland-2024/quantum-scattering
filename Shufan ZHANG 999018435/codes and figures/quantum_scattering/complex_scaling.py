@@ -14,7 +14,7 @@ matrix is complex symmetric (``H.T == H``), rather than Hermitian.
 """
 
 from dataclasses import dataclass
-from typing import Callable, Iterable
+from typing import Callable
 
 import numpy as np
 from scipy.fft import dct
@@ -48,27 +48,14 @@ class ComplexScalingConfig:
 class ComplexSpectrum:
     theta: float
     eigenvalues: np.ndarray
-    complex_symmetry_error: float
-    odd_cosine_moment_max: float
-    cross_parity_coupling_upper_bound: float
 
 
 @dataclass(frozen=True)
 class ResonanceTrack:
     label: str
     pole: complex
-    reference_at_max_theta: complex
-    status: str
     tracked_thetas: np.ndarray
     tracked_values: np.ndarray
-    distances_from_reference: np.ndarray
-    eligible_theta_count: int
-    continuum_clearance: float
-
-    @property
-    def width(self) -> float:
-        """Breit-Wigner full width Gamma for a pole E_r - i Gamma/2."""
-        return -2.0 * float(self.pole.imag)
 
 
 def rotated_model_potential(x: np.ndarray, theta: float) -> np.ndarray:
@@ -101,37 +88,6 @@ def complex_cosine_moments(
     dx = box_length / (quadrature_points - 1)
     moments = 0.5 * dx * dct(values, type=1)
     return moments[: max_order + 1]
-
-
-def build_complex_scaled_hamiltonian(
-    theta: float,
-    config: ComplexScalingConfig,
-    potential_factory: Callable[[np.ndarray, float], np.ndarray] = rotated_model_potential,
-) -> np.ndarray:
-    """Build the complex-symmetric sine-basis Hamiltonian at one angle."""
-    config.validate()
-    theta = float(theta)
-    if theta < 0.0 or theta >= np.pi / 4.0:
-        raise ValueError("theta must satisfy 0 <= theta < pi/4 for this potential")
-    moments = complex_cosine_moments(
-        lambda x: potential_factory(x, theta),
-        config.box_length,
-        config.quadrature_points,
-        2 * config.basis_size,
-    )
-    indices = np.arange(1, config.basis_size + 1, dtype=int)
-    difference = np.abs(indices[:, None] - indices[None, :])
-    total = indices[:, None] + indices[None, :]
-    hamiltonian = (moments[difference] - moments[total]) / config.box_length
-    kinetic = (
-        config.hbar**2
-        * (np.pi * indices / config.box_length) ** 2
-        / (2.0 * config.mass)
-    )
-    hamiltonian[np.diag_indices_from(hamiltonian)] += kinetic * np.exp(-2j * theta)
-    # Roundoff in the indexed construction is already symmetric.  Averaging
-    # makes that mathematical invariant explicit for downstream diagnostics.
-    return 0.5 * (hamiltonian + hamiltonian.T)
 
 
 def _rotated_moments(
@@ -187,19 +143,13 @@ def solve_complex_spectrum(
     config.validate()
     theta = float(theta)
     moments = _rotated_moments(theta, config, potential_factory)
-    odd_moment_max = float(np.max(np.abs(moments[1::2])))
-    # Each cross-parity matrix element is (C_odd-C_odd)/L.
-    coupling_bound = 2.0 * odd_moment_max / config.box_length
     all_indices = np.arange(1, config.basis_size + 1, dtype=int)
     blocks = (
         _parity_block(all_indices[::2], moments, theta, config),
         _parity_block(all_indices[1::2], moments, theta, config),
     )
-    errors: list[float] = []
     block_values: list[np.ndarray] = []
     for block in blocks:
-        denominator = max(float(np.linalg.norm(block)), np.finfo(float).tiny)
-        errors.append(float(np.linalg.norm(block - block.T) / denominator))
         if np.isclose(theta, 0.0, atol=1.0e-15):
             # At theta=0 the block is real Hermitian; using eigvalsh both
             # enforces that limit and removes numerical imaginary noise.
@@ -211,23 +161,7 @@ def solve_complex_spectrum(
         block_values.append(values)
     values = np.concatenate(block_values)
     order = np.lexsort((values.imag, values.real))
-    return ComplexSpectrum(
-        theta,
-        values[order],
-        max(errors),
-        odd_moment_max,
-        coupling_bound,
-    )
-
-
-def solve_angle_family(
-    angles: Iterable[float], config: ComplexScalingConfig
-) -> list[ComplexSpectrum]:
-    """Solve a monotonically increasing, duplicate-free angle family."""
-    theta = np.asarray(tuple(float(value) for value in angles), dtype=float)
-    if theta.ndim != 1 or theta.size < 2 or np.any(np.diff(theta) <= 0.0):
-        raise ValueError("angles must be a strictly increasing one-dimensional sequence")
-    return [solve_complex_spectrum(value, config) for value in theta]
+    return ComplexSpectrum(theta, values[order])
 
 
 def plot_window(
@@ -263,7 +197,6 @@ def identify_resonance_tracks(
     continuum_clearance: float = 0.04,
     match_tolerance: float = 0.012,
     exposure_margin: float = 0.05,
-    minimum_stable_angles: int = 2,
 ) -> list[ResonanceTrack]:
     r"""Identify theta-stationary poles exposed above the rotated continuum.
 
@@ -283,14 +216,10 @@ def identify_resonance_tracks(
     )
     clearances = distance_from_continuum_ray(reference_values, reference_spectrum.theta)
     candidates = reference_values[clearances >= continuum_clearance]
-    candidate_clearances = clearances[clearances >= continuum_clearance]
     order = np.argsort(candidates.real)
     candidates = candidates[order]
-    candidate_clearances = candidate_clearances[order]
     tracks: list[ResonanceTrack] = []
-    for number, (reference, clearance) in enumerate(
-        zip(candidates, candidate_clearances), start=1
-    ):
+    for number, reference in enumerate(candidates, start=1):
         pole_angle = abs(float(np.angle(reference)))
         eligible = [
             item for item in spectra
@@ -298,7 +227,6 @@ def identify_resonance_tracks(
         ]
         tracked_thetas: list[float] = []
         tracked_values: list[complex] = []
-        distances: list[float] = []
         for item in eligible:
             values = plot_window(item.eigenvalues, real_limits, imag_limits)
             if values.size == 0:
@@ -308,23 +236,16 @@ def identify_resonance_tracks(
             if distance <= match_tolerance:
                 tracked_thetas.append(item.theta)
                 tracked_values.append(complex(nearest))
-                distances.append(distance)
         # Report the most strongly exposed (maximum-theta) value, matching the
-        # lecture figures.  The lower-angle matches are an independent
-        # stabilization audit and are not averaged into the quoted pole.
+        # lecture figures.  The lower-angle matches are retained for the
+        # angle-by-angle Breit-Wigner curves and are not averaged together.
         pole = complex(reference)
-        status = "stable" if len(tracked_values) >= minimum_stable_angles else "provisional"
         tracks.append(
             ResonanceTrack(
                 label=f"E{number}",
                 pole=pole,
-                reference_at_max_theta=complex(reference),
-                status=status,
                 tracked_thetas=np.asarray(tracked_thetas, dtype=float),
                 tracked_values=np.asarray(tracked_values, dtype=np.complex128),
-                distances_from_reference=np.asarray(distances, dtype=float),
-                eligible_theta_count=len(eligible),
-                continuum_clearance=float(clearance),
             )
         )
     return tracks

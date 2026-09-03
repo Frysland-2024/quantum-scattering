@@ -1,9 +1,7 @@
-"""Generate the reference-style PNG/GIF and numerical project results."""
+"""Generate the reference-style PNG and GIF project figures."""
 
 from __future__ import annotations
 
-import csv
-import json
 from pathlib import Path
 from typing import Iterable
 
@@ -15,15 +13,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation, PillowWriter
 
-from .delta import convergence_table, lecture_test_function, regularized_delta
+from .delta import convergence_table, regularized_delta
 from .gaussian import (
     free_gaussian,
     gaussian_initial_state,
     packet_momentum_amplitude,
 )
 from .potential import double_barrier_potential
-from .part5 import generate_part5
-from .part6 import generate_part6
+from .box_basis import generate_part5
+from .complex_scaling import generate_part6
 from .stationary import (
     FINITE_DIFFERENCE_DX,
     FINITE_DIFFERENCE_X_MAX,
@@ -37,7 +35,6 @@ from .wavepacket import (
     basis_for_case,
     evaluate_packet,
     evaluate_packet_on_grid,
-    packet_channel_probabilities,
     packet_coefficients,
     reference_cases,
 )
@@ -156,22 +153,6 @@ def generate_part2(root: Path) -> list[Path]:
     created.append(_save(fig, output / "regularized_delta.png"))
 
     rows = convergence_table()
-    csv_path = output / "delta_convergence.csv"
-    with csv_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.writer(handle)
-        writer.writerow(["L", "integral", "phi(0)", "absolute_difference", "grid_step"])
-        for row in rows:
-            writer.writerow(
-                [
-                    f"{row.cutoff:.0f}",
-                    f"{row.integral:.12g}",
-                    f"{row.target:.12g}",
-                    f"{row.absolute_error:.12g}",
-                    f"{row.grid_step:.12g}",
-                ]
-            )
-    created.append(csv_path)
-
     fig, ax = plt.subplots(figsize=(10, 3.0))
     ax.axis("off")
     table_text = [
@@ -233,13 +214,6 @@ def generate_part3(root: Path) -> list[Path]:
     first_probability = peaks.first.transmission
     second_energy = peaks.second.energy
     second_probability = peaks.second.transmission
-    peak_diagnostics = transmission_spectrum(
-        [first_energy, second_energy],
-        x_min=FINITE_DIFFERENCE_X_MIN,
-        x_max=FINITE_DIFFERENCE_X_MAX,
-        dx=FINITE_DIFFERENCE_DX,
-    )
-
     coarse = np.linspace(0.1, 3.0, 1501)
     first_dense = np.unique(np.concatenate((np.linspace(0.6200, 0.6220, 1001), [first_energy])))
     second_dense = np.unique(np.concatenate((np.linspace(1.20, 1.55, 1001), [second_energy])))
@@ -321,38 +295,12 @@ def generate_part3(root: Path) -> list[Path]:
         )
     )
 
-    summary_path = output / "resonance_summary.json"
-    summary_path.write_text(
-        json.dumps(
-            {
-                "method": "three-point backward finite difference",
-                "reference_dx": FINITE_DIFFERENCE_DX,
-                "x_interval": [FINITE_DIFFERENCE_X_MIN, FINITE_DIFFERENCE_X_MAX],
-                "first_peak": {
-                    "energy": first_energy,
-                    "transmission": first_probability,
-                    "reflection": float(peak_diagnostics.reflection[0]),
-                    "unitarity_error": float(peak_diagnostics.unitarity_error[0]),
-                },
-                "second_peak": {
-                    "energy": second_energy,
-                    "transmission": second_probability,
-                    "reflection": float(peak_diagnostics.reflection[1]),
-                    "unitarity_error": float(peak_diagnostics.unitarity_error[1]),
-                },
-                "maximum_unitarity_error": float(np.max(overview.unitarity_error)),
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    created.append(summary_path)
     return created
 
 
 def _case_spectrum(
     case: PacketCase,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     count = 801
     energies = np.linspace(case.spectrum_limits[0], case.spectrum_limits[1], count)
     marker_energies = np.array([case.energy_min, case.energy_center, case.energy_max])
@@ -379,30 +327,15 @@ def _case_spectrum(
         x_max=FINITE_DIFFERENCE_X_MAX,
         dx=FINITE_DIFFERENCE_DX,
     )
-    return (
-        result.energy,
-        result.transmission,
-        marker_result.transmission,
-        marker_result.reflection,
-        marker_result.unitarity_error,
-    )
+    return result.energy, result.transmission, marker_result.transmission
 
 
-_LEGACY_PACKET_SLUGS = frozenset(
+_STANDARD_PACKET_SLUGS = frozenset(
     {"blocked", "partially_blocked", "pass", "second_resonance"}
 )
 
 
-def _packet_rendering(case: PacketCase, x: np.ndarray) -> tuple[str, float]:
-    """Report the carrier sampling while preserving the teacher's Re/Im view."""
-
-    spacing = float(np.max(np.diff(x)))
-    carrier_wavelength = 2.0 * np.pi / case.momentum_center
-    samples_per_wavelength = carrier_wavelength / spacing
-    return "complex carrier", samples_per_wavelength
-
-
-def _legacy_packet_overview(
+def _standard_packet_overview(
     case: PacketCase,
     x: np.ndarray,
     packets: list[np.ndarray],
@@ -591,8 +524,8 @@ def _packet_overview(
     spectrum_probability: np.ndarray,
     marker_probability: np.ndarray,
 ) -> plt.Figure:
-    if case.slug in _LEGACY_PACKET_SLUGS:
-        return _legacy_packet_overview(
+    if case.slug in _STANDARD_PACKET_SLUGS:
+        return _standard_packet_overview(
             case,
             x,
             packets,
@@ -725,13 +658,7 @@ def generate_part4(
             ]
         else:
             packets = [evaluate_packet(matrix, basis, coefficients, time) for time in case.snapshot_times]
-        (
-            spectrum_energy,
-            spectrum_probability,
-            marker_probability,
-            marker_reflection,
-            marker_unitarity_error,
-        ) = _case_spectrum(case)
+        spectrum_energy, spectrum_probability, marker_probability = _case_spectrum(case)
         overview = _packet_overview(
             case,
             x,
@@ -742,67 +669,6 @@ def generate_part4(
         )
         png_path = output / f"{case.slug}.png"
         created.append(_save(overview, png_path, dpi=130))
-
-        overall_transmission, overall_reflection, incident_norm = packet_channel_probabilities(basis, coefficients)
-        center_index = int(np.argmin(np.abs(basis.energy - case.energy_center)))
-        center_basis_transmission = float(np.abs(basis.transmission[center_index]) ** 2)
-        render_mode, samples_per_wavelength = _packet_rendering(case, x)
-        diagnostics = {
-            "case": case.slug,
-            "marker_energies": [case.energy_min, case.energy_center, case.energy_max],
-            "momenta": [case.momentum_min, case.momentum_center, case.momentum_max],
-            "basis_momentum_interval": [float(basis.p[0]), float(basis.p[-1])],
-            "momentum_sigma_a0": case.momentum_sigma,
-            "reported_sigma_p": case.reported_sigma,
-            "marker_transmission": [float(value) for value in marker_probability],
-            "marker_reflection": [float(value) for value in marker_reflection],
-            "marker_unitarity_error": [float(value) for value in marker_unitarity_error],
-            "part3_second_peak_energy": peaks.second.energy,
-            "part3_first_peak_energy": peaks.first.energy,
-            "part3_peak_dx": FINITE_DIFFERENCE_DX,
-            "part3_peak_x_interval": [FINITE_DIFFERENCE_X_MIN, FINITE_DIFFERENCE_X_MAX],
-            "wavepacket_basis_dx": case.basis_dx,
-            "energy_center_source": (
-                "part3_finite_difference_first_peak"
-                if case.slug == "first_resonance"
-                else "part3_finite_difference_second_peak"
-                if case.slug in {"partially_blocked", "second_resonance"}
-                else "fixed_case_value"
-            ),
-            "snapshot_count": len(case.snapshot_times),
-            "position_evaluation": "blocked" if matrix is None else "precomputed_matrix",
-            "global_rendering": {
-                "mode": render_mode,
-                "samples_per_carrier_wavelength": samples_per_wavelength,
-                "point_count": int(x.size),
-                "reference_style": "teacher Re/Im carrier view",
-                "sampling_note": (
-                    "The full-range first-resonance carrier is intentionally under-sampled "
-                    "to reproduce the teacher's global overview; use the zoom GIF to resolve it."
-                    if case.slug == "first_resonance" and samples_per_wavelength < 4.0
-                    else "The complex carrier is drawn directly."
-                ),
-            },
-            "incident_spectral_norm": incident_norm,
-            "overall_transmission": overall_transmission,
-            "overall_reflection": overall_reflection,
-            "overall_unitarity_error": abs(overall_transmission + overall_reflection - 1.0),
-            "basis_center_energy": float(basis.energy[center_index]),
-            "basis_center_transmission": center_basis_transmission,
-            "first_resonance_acceptance": (
-                {
-                    "center_transmission_gt_0.99": center_basis_transmission > 0.99,
-                    "overall_transmission_gt_0.99": overall_transmission > 0.99,
-                }
-                if case.slug == "first_resonance"
-                else None
-            ),
-            "finite_plot_norms": [float(np.trapezoid(np.abs(psi) ** 2, x)) for psi in packets],
-            "continuum_only": True,
-        }
-        diagnostics_path = output / f"{case.slug}_diagnostics.json"
-        diagnostics_path.write_text(json.dumps(diagnostics, indent=2), encoding="utf-8")
-        created.append(diagnostics_path)
 
         if include_gifs:
             if case.slug == "first_resonance":
@@ -856,22 +722,6 @@ def generate_part4(
                 _save_packet_gif(gif_path, case, x, matrix, basis, coefficients, animation_times)
                 created.append(gif_path)
         del matrix
-    manifest_path = output / "part4_manifest.json"
-    manifest_path.write_text(
-        json.dumps(
-            {
-                "profile": profile,
-                "include_gifs": include_gifs,
-                "part3_peak_dx": FINITE_DIFFERENCE_DX,
-                "first_resonance_energy": peaks.first.energy,
-                "second_resonance_energy": peaks.second.energy,
-                "artifacts": [path.name for path in created],
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    created.append(manifest_path)
     return created
 
 
@@ -881,7 +731,7 @@ def generate_all(
     profile: str = "reference",
     include_gifs: bool = True,
 ) -> list[Path]:
-    """Generate every project artifact."""
+    """Generate every project figure."""
 
     root_path = Path(root)
     root_path.mkdir(parents=True, exist_ok=True)
@@ -892,17 +742,4 @@ def generate_all(
     created.extend(generate_part4(root_path, profile=profile, include_gifs=include_gifs))
     created.extend(generate_part5(root_path, profile=profile))
     created.extend(generate_part6(root_path, profile=profile))
-    manifest = root_path / "manifest.json"
-    manifest.write_text(
-        json.dumps(
-            {
-                "profile": profile,
-                "include_gifs": include_gifs,
-                "artifacts": [path.relative_to(root_path).as_posix() for path in created],
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    created.append(manifest)
     return created

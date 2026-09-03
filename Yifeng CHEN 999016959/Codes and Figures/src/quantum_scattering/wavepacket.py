@@ -305,17 +305,3 @@ def evaluate_packet_on_grid(
         matrix = basis.state_matrix(positions[start:stop], dtype=matrix_dtype, block_size=block_size)
         result[start:stop] = evaluate_packet(matrix, basis, coefficients, time)
     return result
-
-
-def packet_channel_probabilities(
-    basis: ScatteringBasis,
-    coefficients: NDArray[np.complex128],
-) -> tuple[float, float, float]:
-    """Return incident-normalized transmitted, reflected, and total spectral probabilities."""
-
-    weights = trapezoid_weights(basis.p)
-    density = np.abs(coefficients) ** 2
-    incident = float(np.sum(weights * density))
-    transmitted = float(np.sum(weights * density * np.abs(basis.transmission) ** 2) / incident)
-    reflected = float(np.sum(weights * density * np.abs(basis.reflection) ** 2) / incident)
-    return transmitted, reflected, incident

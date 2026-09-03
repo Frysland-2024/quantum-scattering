@@ -33,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     started = time.perf_counter()
     created = generate_part5(args.output_dir, profile=args.profile)
     elapsed = time.perf_counter() - started
-    print(f"Part 5 generated {len(created)} artifacts in {elapsed:.2f} s")
+    print(f"Part 5 generated {len(created)} figures in {elapsed:.2f} s")
     for path in created:
         print(path.resolve())
     return 0

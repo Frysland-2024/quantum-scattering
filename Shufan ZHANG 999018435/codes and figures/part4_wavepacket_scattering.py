@@ -8,8 +8,6 @@ import argparse
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
 import numpy as np
-from scipy.optimize import minimize_scalar
-
 import part3_stationary_scattering as part3
 from quantum_scattering.core import ensure_dir, gaussian_p
 from quantum_scattering.scattering import (
@@ -42,7 +40,6 @@ class Scenario:
     animation_points: int
     animation_times: tuple[float, float]
     basis_dx: float = PART4_BASIS_DX
-    energy_digits: int = 6
     local_xlim: tuple[float, float] | None = None
     local_ylim: tuple[float, float] | None = None
     local_points: int = 2401
@@ -79,23 +76,6 @@ def part3_peaks() -> dict[str, float]:
     return {"E1": e1, "E2": e2}
 
 
-@lru_cache(maxsize=None)
-def basis_consistent_peak(lo: float, hi: float, dx: float = PART4_BASIS_DX) -> float:
-    def objective(energy: float) -> float:
-        scan = appendix_v_scan(np.array([energy]), dx=dx)
-        return -float(np.abs(scan.T[0]) ** 2)
-
-    result = minimize_scalar(
-        objective,
-        bounds=(lo, hi),
-        method="bounded",
-        options={"xatol": 2.0e-12, "maxiter": 120},
-    )
-    if not result.success:
-        raise RuntimeError(f"resonance search failed in [{lo}, {hi}]: {result.message}")
-    return float(result.x)
-
-
 @lru_cache(maxsize=1)
 def scenario_catalog() -> dict[str, Scenario]:
     peaks = part3_peaks()
@@ -122,7 +102,7 @@ def scenario_catalog() -> dict[str, Scenario]:
             "first_resonance", first_peak - 7.5e-6, first_peak, first_peak + 7.5e-6,
             2.12e-6, 450000.0, (-20.0, 450000.0, 1000000.0),
             (-1.0e6, 1.0e6), (-0.02, 0.02), (0.62090, 0.62102),
-            9001, 9001, (-20.0, 1.0e6), basis_dx=0.0025, energy_digits=9,
+            9001, 9001, (-20.0, 1.0e6), basis_dx=0.0025,
             local_xlim=(-60.0, 60.0), local_ylim=(-0.125, 0.125),
             local_points=2401, local_times=(350000.0, 800000.0),
         ),
@@ -130,7 +110,7 @@ def scenario_catalog() -> dict[str, Scenario]:
             "second_resonance", second_peak - 0.001, second_peak, second_peak + 0.001,
             0.000177, 5500.0, (-20.0, 2000.0, 4500.0, 10000.0),
             (-20000.0, 20000.0), (-0.10, 0.10), (1.30, 1.36),
-            50001, 50001, (-100.0, 11000.0), energy_digits=9,
+            50001, 50001, (-100.0, 11000.0),
             local_xlim=(-60.0, 60.0), local_ylim=(-0.11, 0.11),
             local_points=2401, local_times=(2600.0, 4300.0),
         ),
@@ -161,7 +141,7 @@ def setup(scenario: Scenario, x: np.ndarray, n_p: int):
         n_p,
     )
     weights = quadrature_weights(p)
-    states, transmission, reflection = left_incident_state_matrix(
+    states, _, _ = left_incident_state_matrix(
         p, x, dx=scenario.basis_dx
     )
     if x.size >= 10000:
@@ -169,7 +149,7 @@ def setup(scenario: Scenario, x: np.ndarray, n_p: int):
     coeff = gaussian_p(p, scenario.alpha, scenario.p0, scenario.x0)
     coeff = coeff / np.sqrt(float(np.sum(np.abs(coeff) ** 2 * weights)))
     energy = p**2 / (2.0 * MASS)
-    return p, energy, states, transmission, reflection, coeff, weights
+    return p, energy, states, coeff, weights
 
 
 def evolve(
@@ -200,14 +180,7 @@ def plot_wave(ax, x: np.ndarray, psi: np.ndarray, time: float, scenario: Scenari
 def spectrum_for(scenario: Scenario, n: int = 801):
     energies = np.linspace(*scenario.spectrum_xlim, n)
     scan = appendix_v_scan(energies, dx=scenario.basis_dx)
-    return energies, np.abs(scan.T) ** 2, np.abs(scan.R) ** 2
-
-
-def integrated_probabilities(coeff, weights, transmission, reflection):
-    density = np.abs(coeff) ** 2
-    p_trans = float(np.sum(weights * density * np.abs(transmission) ** 2))
-    p_refl = float(np.sum(weights * density * np.abs(reflection) ** 2))
-    return p_trans, p_refl
+    return energies, np.abs(scan.T) ** 2
 
 
 def transmission_probability(energy: float, dx: float) -> float:
@@ -240,13 +213,12 @@ def animation_parameter_title(scenario: Scenario) -> str:
     )
 
 
-def summary(scenario: Scenario, n_p: int) -> dict[str, float]:
+def summary(scenario: Scenario, n_p: int) -> Path:
     ensure_dir(OUT)
     x = np.linspace(*scenario.xlim, scenario.global_points)
-    p, energy, states, transmission, reflection, coeff, weights = setup(scenario, x, n_p)
-    p_trans, p_refl = integrated_probabilities(coeff, weights, transmission, reflection)
+    p, energy, states, coeff, weights = setup(scenario, x, n_p)
     scan_points = 1000 if "resonance" in scenario.name else 900
-    e_scan, t_scan, _ = spectrum_for(scenario, n=scan_points)
+    e_scan, t_scan = spectrum_for(scenario, n=scan_points)
 
     fig = plt.figure(figsize=(16, 9))
     grid = fig.add_gridspec(4, 2, width_ratios=[1.0, 1.2])
@@ -313,9 +285,10 @@ def summary(scenario: Scenario, n_p: int) -> dict[str, float]:
     fig.subplots_adjust(
         left=0.06, right=0.98, bottom=0.07, top=0.92, wspace=0.25, hspace=0.45
     )
-    fig.savefig(OUT / f"part4_{scenario.name}.png", dpi=150)
+    path = OUT / f"part4_{scenario.name}.png"
+    fig.savefig(path, dpi=150)
     plt.close(fig)
-    return {"integrated_PT": p_trans, "integrated_PR": p_refl}
+    return path
 
 
 def animation(scenario: Scenario, n_p: int, quick: bool, *, local: bool = False) -> Path:
@@ -334,7 +307,7 @@ def animation(scenario: Scenario, n_p: int, quick: bool, *, local: bool = False)
         timespec = scenario.animation_times
 
     x = np.linspace(*xlim, points)
-    p, energy, states, transmission, reflection, coeff, weights = setup(scenario, x, n_p)
+    p, energy, states, coeff, weights = setup(scenario, x, n_p)
     resonance = "resonance" in scenario.name
     n_frames = 40 if resonance else 65 if quick else 110
     times = np.linspace(*timespec, n_frames)
@@ -371,14 +344,6 @@ def animation(scenario: Scenario, n_p: int, quick: bool, *, local: bool = False)
     return path
 
 
-def cleanup_old_metadata() -> None:
-    for path in OUT.glob("part4_*_diagnostics.json"):
-        try:
-            path.unlink()
-        except FileNotFoundError:
-            pass
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Part 4 continuum wave-packet scattering")
     parser.add_argument("--scenario", choices=SCENARIO_NAMES + ("all",), default="all")
@@ -386,22 +351,16 @@ def main() -> None:
     parser.add_argument("--skip-gifs", action="store_true", help="generate static figures only")
     args = parser.parse_args()
 
-    cleanup_old_metadata()
     scenarios = scenario_catalog()
     selected = list(SCENARIO_NAMES) if args.scenario == "all" else [args.scenario]
     n_p = 181 if args.quick else 301
     for name in selected:
         scenario = scenarios[name]
-        result = summary(scenario, n_p)
-        print(
-            f"{name}: E0={scenario.E0:.{scenario.energy_digits}f}, "
-            f"PT={result['integrated_PT']:.9f}, PR={result['integrated_PR']:.9f}"
-        )
+        print(summary(scenario, n_p))
         if not args.skip_gifs:
             animation(scenario, n_p, args.quick)
             if scenario.local_xlim is not None:
                 animation(scenario, n_p, args.quick, local=True)
-    cleanup_old_metadata()
 
 
 if __name__ == "__main__":

@@ -17,14 +17,6 @@ def find_resonance_peaks():
     return peak(.60,.64), peak(1.28,1.38)
 
 
-def clean_old_metadata():
-    """Remove non-deliverable metadata left by older runs."""
-    try:
-        (OUT/'part3_peak_summary.txt').unlink()
-    except FileNotFoundError:
-        pass
-
-
 def main_profile():
     (e1,p1),(e2,p2)=find_resonance_peaks()
     E=np.unique(np.r_[np.linspace(.002,3,2200),np.linspace(e1-.004,e1+.004,1600),np.linspace(e2-.10,e2+.10,1500),e1,e2])
@@ -45,8 +37,7 @@ def wf(energies,filename,title):
 
 
 def main():
-    ensure_dir(OUT); clean_old_metadata(); e1,e2=main_profile()
+    ensure_dir(OUT); e1,e2=main_profile()
     wf([0.4,e1,0.75],'part3_continuum_states_first_peak.png','continuum wavefunctions (around the first peak)')
     wf([1.0,e2,1.6],'part3_continuum_states_second_peak.png','continuum wavefunctions (around the second peak)')
-    clean_old_metadata()
 if __name__=='__main__': main()

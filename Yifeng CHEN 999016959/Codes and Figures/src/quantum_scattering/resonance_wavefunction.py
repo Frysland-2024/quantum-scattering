@@ -114,17 +114,31 @@ def _integrate_positive_branch(energy: complex, theta: float):
     return result
 
 
-def _evaluate_branch(
-    energy: complex,
-    theta: float,
+def _prepare_resonance_state(energy: complex):
+    momentum = _outgoing_momentum(energy)
+    unscaled_solution = _integrate_positive_branch(energy, 0.0)
+    boundary_value, boundary_derivative = unscaled_solution.sol(ASYMPTOTIC_MATCH)
+    residual = abs(boundary_derivative - 1j * momentum * boundary_value)
+    residual_scale = max(abs(momentum * boundary_value), np.finfo(float).tiny)
+    if residual / residual_scale > 1.0e-5:
+        raise RuntimeError("the selected energy fails the outgoing-boundary check")
+    outgoing_amplitude = complex(boundary_value) * np.exp(
+        -1j * momentum * ASYMPTOTIC_MATCH
+    )
+    scaled_solution = _integrate_positive_branch(energy, WAVEFUNCTION_THETA)
+    return momentum, outgoing_amplitude, unscaled_solution, scaled_solution
+
+
+def _evaluate_prepared_branch(
     x: NDArray[np.float64],
+    *,
+    theta: float,
+    momentum: complex,
     outgoing_amplitude: complex,
+    interior_solution,
 ) -> NDArray[np.complex128]:
     radius = np.abs(np.asarray(x, dtype=float))
     rotation = np.exp(1j * theta)
-    momentum = _outgoing_momentum(energy)
-    interior_solution = _integrate_positive_branch(energy, theta)
-
     values = np.empty(radius.shape, dtype=np.complex128)
     interior = radius <= ASYMPTOTIC_MATCH
     values[interior] = interior_solution.sol(radius[interior])[0]
@@ -134,42 +148,31 @@ def _evaluate_branch(
     return values
 
 
-def _solve_at_energy(
+def _evaluate_wavefunction(
     x: NDArray[np.float64],
     energy: complex,
+    prepared,
 ) -> ResonanceWavefunction:
-    momentum = _outgoing_momentum(energy)
-
-    physical_solution = _integrate_positive_branch(energy, 0.0)
-    boundary_value, boundary_derivative = physical_solution.sol(ASYMPTOTIC_MATCH)
-    residual = abs(boundary_derivative - 1j * momentum * boundary_value)
-    residual_scale = max(abs(momentum * boundary_value), np.finfo(float).tiny)
-    if residual / residual_scale > 1.0e-5:
-        raise RuntimeError("the selected energy fails the outgoing-boundary check")
-    outgoing_amplitude = complex(boundary_value) * np.exp(
-        -1j * momentum * ASYMPTOTIC_MATCH
-    )
-
+    momentum, outgoing_amplitude, unscaled_solution, scaled_solution = prepared
     coordinate = np.asarray(x, dtype=float)
     return ResonanceWavefunction(
         x=coordinate,
         energy=energy,
-        unscaled=_evaluate_branch(energy, 0.0, coordinate, outgoing_amplitude),
-        scaled=_evaluate_branch(
-            energy,
-            WAVEFUNCTION_THETA,
+        unscaled=_evaluate_prepared_branch(
             coordinate,
-            outgoing_amplitude,
+            theta=0.0,
+            momentum=momentum,
+            outgoing_amplitude=outgoing_amplitude,
+            interior_solution=unscaled_solution,
+        ),
+        scaled=_evaluate_prepared_branch(
+            coordinate,
+            theta=WAVEFUNCTION_THETA,
+            momentum=momentum,
+            outgoing_amplitude=outgoing_amplitude,
+            interior_solution=scaled_solution,
         ),
     )
-
-
-def solve_resonance_wavefunction(
-    x: NDArray[np.float64],
-    *,
-    profile: str = "reference",
-) -> ResonanceWavefunction:
-    return _solve_at_energy(x, _second_resonance(profile))
 
 
 def _outer_heading(fig: plt.Figure, text: str) -> None:
@@ -242,15 +245,14 @@ def generate_resonance_wavefunctions(
     output.mkdir(parents=True, exist_ok=True)
 
     energy = _second_resonance(profile)
+    prepared = _prepare_resonance_state(energy)
     near_points = 8001 if profile == "quick" else 12001
     far_points = 12001 if profile == "quick" else 24001
-    near = _solve_at_energy(
-        np.linspace(-200.0, 200.0, near_points),
-        energy,
+    near = _evaluate_wavefunction(
+        np.linspace(-200.0, 200.0, near_points), energy, prepared
     )
-    far = _solve_at_energy(
-        np.linspace(-500.0, 500.0, far_points),
-        energy,
+    far = _evaluate_wavefunction(
+        np.linspace(-500.0, 500.0, far_points), energy, prepared
     )
     return [
         _save_wavefunction_figure(
@@ -270,5 +272,4 @@ __all__ = [
     "ResonanceWavefunction",
     "WAVEFUNCTION_THETA",
     "generate_resonance_wavefunctions",
-    "solve_resonance_wavefunction",
 ]

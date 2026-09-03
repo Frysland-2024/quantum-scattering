@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -45,9 +44,6 @@ class BoxSolution:
     grid_points: int
     energies: NDArray[np.float64]
     coefficients: NDArray[np.float64]
-    parity: tuple[str, ...]
-    hamiltonian_symmetry_error: float
-    kinetic_scheme: str = "spectral"
 
 
 def _cosine_moments(
@@ -124,11 +120,9 @@ def solve_box_basis(
     )
     all_energies: list[NDArray[np.float64]] = []
     all_coefficients: list[NDArray[np.float64]] = []
-    all_parities: list[str] = []
-    symmetry_error = 0.0
     j_all = np.arange(1, basis_size + 1, dtype=np.int64)
 
-    for odd_j, parity_label in ((True, "even"), (False, "odd")):
+    for odd_j in (True, False):
         j_block = j_all[(j_all % 2 == 1) if odd_j else (j_all % 2 == 0)]
         hamiltonian = _hamiltonian_block(
             j_block,
@@ -136,7 +130,6 @@ def solve_box_basis(
             length=length,
             grid_spacing=grid_spacing,
         )
-        symmetry_error = max(symmetry_error, float(np.max(np.abs(hamiltonian - hamiltonian.T))))
         if state_count is None:
             energies, vectors = eigh(
                 hamiltonian,
@@ -159,11 +152,9 @@ def solve_box_basis(
         coefficients[j_block - 1, :] = vectors
         all_energies.append(np.asarray(energies, dtype=float))
         all_coefficients.append(coefficients)
-        all_parities.extend([parity_label] * energies.size)
 
     energies = np.concatenate(all_energies)
     coefficients = np.concatenate(all_coefficients, axis=1)
-    parity_array = np.asarray(all_parities, dtype=object)
     order = np.argsort(energies)
     if state_count is not None:
         order = order[:state_count]
@@ -173,9 +164,6 @@ def solve_box_basis(
         grid_points=int(grid_points),
         energies=energies[order],
         coefficients=coefficients[:, order],
-        parity=tuple(str(value) for value in parity_array[order]),
-        hamiltonian_symmetry_error=symmetry_error,
-        kinetic_scheme=kinetic_scheme,
     )
 
 
@@ -212,14 +200,6 @@ def _canonicalize(wavefunctions: NDArray[np.float64]) -> NDArray[np.float64]:
     return result
 
 
-def _coordinate_norms(x: NDArray[np.float64], wavefunctions: NDArray[np.float64]) -> NDArray[np.float64]:
-    return np.asarray(np.trapezoid(wavefunctions**2, x, axis=0), dtype=float)
-
-
-def _coefficient_norms(solution: BoxSolution) -> NDArray[np.float64]:
-    return np.asarray(np.sum(solution.coefficients**2, axis=0), dtype=float)
-
-
 def _localization_fractions(
     solution: BoxSolution,
     indices: NDArray[np.int64],
@@ -231,20 +211,17 @@ def _localization_fractions(
     return np.asarray(np.trapezoid(wavefunctions**2, x, axis=0), dtype=float)
 
 
-def identify_localized_states(solution: BoxSolution) -> tuple[NDArray[np.int64], NDArray[np.float64]]:
-    """Identify the bound state and the two resonance pseudostates by localization."""
+def identify_localized_states(solution: BoxSolution) -> NDArray[np.int64]:
+    """Identify the bound state and two box states localized near the resonances."""
 
     selected = [0]
-    fractions = [float(_localization_fractions(solution, np.array([0]))[0])]
     for target, window in ((FIRST_RESONANCE_REFERENCE, 0.04), (SECOND_RESONANCE_REFERENCE, 0.05)):
         candidates = np.flatnonzero(np.abs(solution.energies - target) <= window)
         if candidates.size == 0:
             candidates = np.argsort(np.abs(solution.energies - target))[:12]
         candidate_fractions = _localization_fractions(solution, candidates)
-        best = int(np.argmax(candidate_fractions))
-        selected.append(int(candidates[best]))
-        fractions.append(float(candidate_fractions[best]))
-    return np.asarray(selected, dtype=np.int64), np.asarray(fractions, dtype=float)
+        selected.append(int(candidates[int(np.argmax(candidate_fractions))]))
+    return np.asarray(selected, dtype=np.int64)
 
 
 def _save(fig: plt.Figure, path: Path, *, dpi: int = 150) -> Path:
@@ -269,7 +246,7 @@ def _profile_parameters(profile: str) -> dict[str, tuple[int, float, int]]:
     }
 
 
-def _localized_run(parameters: tuple[int, float, int]) -> tuple[BoxSolution, NDArray[np.int64], NDArray[np.float64]]:
+def _localized_run(parameters: tuple[int, float, int]) -> tuple[BoxSolution, NDArray[np.int64]]:
     basis_size, length, grid_points = parameters
     solution = solve_box_basis(
         short_range_potential,
@@ -278,12 +255,11 @@ def _localized_run(parameters: tuple[int, float, int]) -> tuple[BoxSolution, NDA
         grid_points=grid_points,
         state_count=min(130, basis_size),
     )
-    indices, fractions = identify_localized_states(solution)
-    return solution, indices, fractions
+    return solution, identify_localized_states(solution)
 
 
 def generate_part5(root: Path | str = Path("output"), *, profile: str = "reference") -> list[Path]:
-    """Generate all five Part-5 static figures and numerical diagnostics."""
+    """Generate the five Part-5 static figures."""
 
     if profile not in {"quick", "reference", "full"}:
         raise ValueError("profile must be quick, reference, or full")
@@ -304,9 +280,6 @@ def generate_part5(root: Path | str = Path("output"), *, profile: str = "referen
     )
     ho_x = np.linspace(-ho_l / 2.0, ho_l / 2.0, ho_n)
     ho_psi = _canonicalize(reconstruct_wavefunctions(ho_x, ho))
-    ho_norms = _coordinate_norms(ho_x, ho_psi)
-    exact = np.arange(10, dtype=float) - 0.3
-    ho_errors = ho.energies - exact
     plot_mask = np.abs(ho_x) <= 10.0
     fig, ax = plt.subplots(figsize=(10, 7))
     ax.plot(
@@ -347,7 +320,6 @@ def generate_part5(root: Path | str = Path("output"), *, profile: str = "referen
     short_center = int(np.argmin(np.abs(short_x)))
     if short_psi[short_center, 0] < 0.0:
         short_psi[:, 0] *= -1.0
-    short_norms = _coordinate_norms(short_x, short_psi)
     short_mask = np.ones(short_x.size, dtype=bool)
     potential_label = r"$V(x)=(0.5x^2-0.8)e^{-0.1x^2}$"
 
@@ -447,7 +419,6 @@ def generate_part5(root: Path | str = Path("output"), *, profile: str = "referen
     all_center = int(np.argmin(np.abs(all_x)))
     if all_psi[all_center, 0] < 0.0:
         all_psi[:, 0] *= -1.0
-    all_norms = _coordinate_norms(all_x, all_psi)
     all_mask = np.ones(all_x.size, dtype=bool)
     fig, ax = plt.subplots(figsize=(11, 8))
     ax.plot(
@@ -482,7 +453,7 @@ def generate_part5(root: Path | str = Path("output"), *, profile: str = "referen
     created.append(_save(fig, output / "short_range_all_states.png"))
 
     # 5. Bound state and the two localized resonance pseudostates.
-    localized, localized_indices, localized_fractions = _localized_run(parameters["localized"])
+    localized, localized_indices = _localized_run(parameters["localized"])
     loc_x = np.linspace(-localized.length / 2.0, localized.length / 2.0, localized.grid_points)
     loc_psi = _canonicalize(reconstruct_wavefunctions(loc_x, localized, localized_indices))
     loc_center = int(np.argmin(np.abs(loc_x)))
@@ -494,7 +465,6 @@ def generate_part5(root: Path | str = Path("output"), *, profile: str = "referen
         loc_psi[:, 1] *= -1.0
     if loc_psi[loc_center, 2] > 0.0:
         loc_psi[:, 2] *= -1.0
-    loc_norms = _coordinate_norms(loc_x, loc_psi)
     loc_mask = np.abs(loc_x) <= 20.0
     labels = ("Bound state", "First resonance", "Second resonance")
     colors = ("red", "blue", "green")
@@ -532,110 +502,6 @@ def generate_part5(root: Path | str = Path("output"), *, profile: str = "referen
     ax.legend(loc="upper right")
     created.append(_save(fig, output / "three_localized_states.png"))
 
-    # Independent L/J checks for resonance identification.
-    if profile == "quick":
-        convergence_parameters = {
-            "lower_J": (400, 200.0, 4000),
-            "smaller_L": (360, 180.0, 3600),
-        }
-    else:
-        convergence_parameters = {
-            "lower_J": (1200, 200.0, 10000),
-            "smaller_L": (1080, 180.0, 9000),
-        }
-    convergence: dict[str, object] = {}
-    base_energies = localized.energies[localized_indices]
-    for name, values in convergence_parameters.items():
-        check_solution, check_indices, check_fractions = _localized_run(values)
-        check_energies = check_solution.energies[check_indices]
-        convergence[name] = {
-            "J": values[0],
-            "L": values[1],
-            "N": values[2],
-            "indices": [int(value) for value in check_indices],
-            "energies": [float(value) for value in check_energies],
-            "delta_from_primary": [float(value) for value in check_energies - base_energies],
-            "localization_fractions": [float(value) for value in check_fractions],
-        }
-
-    diagnostics = {
-        "method": (
-            "Lecture-8 particle-in-a-box sine-basis Hamiltonian matrix. "
-            "The harmonic validation uses the teacher's three-point-grid kinetic dispersion; "
-            "the short-range calculations use the spectral sine-basis kinetic diagonal."
-        ),
-        "units": {"mass": 1.0, "hbar": 1.0},
-        "basis": "sqrt(2/L) sin(j*pi*(x+L/2)/L), j=1..J",
-        "kinetic_diagonal": {
-            "short_range": "(j*pi/L)^2/2",
-            "harmonic_teacher_grid": "[1-cos((j*pi/L)*dx)]/dx^2, dx=L/(N-1)",
-        },
-        "potential_matrix": "V_ij=(C_|i-j|-C_i+j)/L using trapezoidal DCT-I cosine moments",
-        "localization_window": [-LOCALIZATION_HALF_WIDTH, LOCALIZATION_HALF_WIDTH],
-        "positive_energy_note": "Positive-energy box eigenstates are finite-box pseudostates; resonances are selected by target energy and central localization.",
-        "profiles": {name: {"J": value[0], "L": value[1], "N": value[2]} for name, value in parameters.items()},
-        "harmonic_oscillator": {
-            "exact_formula": "E_n=n-0.3",
-            "kinetic_scheme": ho.kinetic_scheme,
-            "grid_spacing": float(ho_l / (ho_n - 1)),
-            "plot_representation": "E_n + normalized psi_n(x), without per-state display rescaling",
-            "energies": [float(value) for value in ho.energies],
-            "exact_energies": [float(value) for value in exact],
-            "errors": [float(value) for value in ho_errors],
-            "max_absolute_error": float(np.max(np.abs(ho_errors))),
-            "hamiltonian_symmetry_error": ho.hamiltonian_symmetry_error,
-            "max_c_norm_error": float(np.max(np.abs(_coefficient_norms(ho) - 1.0))),
-            "max_coordinate_norm_error": float(np.max(np.abs(ho_norms - 1.0))),
-        },
-        "short_range_first11": {
-            "energies": [float(value) for value in short.energies],
-            "parity": list(short.parity),
-            "plot_representation": "E_n + normalized psi_n(x), without per-state display rescaling",
-            "hamiltonian_symmetry_error": short.hamiltonian_symmetry_error,
-            "max_c_norm_error": float(np.max(np.abs(_coefficient_norms(short) - 1.0))),
-            "max_coordinate_norm_error": float(np.max(np.abs(short_norms - 1.0))),
-        },
-        "all_states": {
-            "state_count": int(all_states.energies.size),
-            "plot_representation": "E_n + normalized psi_n(x), without per-state display rescaling",
-            "hamiltonian_symmetry_error": all_states.hamiltonian_symmetry_error,
-            "max_c_norm_error": float(np.max(np.abs(_coefficient_norms(all_states) - 1.0))),
-            "max_coordinate_norm_error": float(np.max(np.abs(all_norms - 1.0))),
-        },
-        "localized_states": {
-            "indices": [int(value) for value in localized_indices],
-            "energies": [float(value) for value in base_energies],
-            "part3_targets": [None, FIRST_RESONANCE_REFERENCE, SECOND_RESONANCE_REFERENCE],
-            "delta_from_part3": [None, float(base_energies[1] - FIRST_RESONANCE_REFERENCE), float(base_energies[2] - SECOND_RESONANCE_REFERENCE)],
-            "parity": [localized.parity[int(value)] for value in localized_indices],
-            "central_localization_fractions": [float(value) for value in localized_fractions],
-            "plot_representation": "E_n + normalized psi_n(x), without per-state display rescaling",
-            "hamiltonian_symmetry_error": localized.hamiltonian_symmetry_error,
-            "max_c_norm_error": float(
-                np.max(np.abs(np.sum(localized.coefficients[:, localized_indices] ** 2, axis=0) - 1.0))
-            ),
-            "max_coordinate_norm_error": float(np.max(np.abs(loc_norms - 1.0))),
-            "convergence": convergence,
-        },
-    }
-    diagnostics_path = output / "part5_diagnostics.json"
-    diagnostics_path.write_text(json.dumps(diagnostics, indent=2), encoding="utf-8")
-    created.append(diagnostics_path)
-
-    manifest_path = output / "part5_manifest.json"
-    manifest_path.write_text(
-        json.dumps(
-            {
-                "profile": profile,
-                "artifacts": [path.name for path in created],
-                "static_figure_count": 5,
-                "diagnostics": diagnostics_path.name,
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    created.append(manifest_path)
     return created
 
 

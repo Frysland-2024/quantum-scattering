@@ -24,7 +24,6 @@ class ScanResult:
     energies: np.ndarray
     T: np.ndarray
     R: np.ndarray
-    probability_error: np.ndarray
 
 
 def appendix_v_scan(energies: np.ndarray, *, dx: float = 0.0025, a: float = A_RANGE,
@@ -56,8 +55,7 @@ def appendix_v_scan(energies: np.ndarray, *, dx: float = 0.0025, a: float = A_RA
     A = (psi0*e1m - psi1*e0m) / det
     B = (e0p*psi1 - e1p*psi0) / det
     T, R = 1.0/A, B/A
-    err = np.abs(np.abs(T)**2 + np.abs(R)**2 - 1.0)
-    return ScanResult(E, T, R, err)
+    return ScanResult(E, T, R)
 
 
 @dataclass

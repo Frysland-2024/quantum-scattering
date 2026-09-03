@@ -74,22 +74,6 @@ def free_gaussian(
     return normalization * spatial * phase
 
 
-def free_gaussian_moments(
-    t: float,
-    a: float = 1.0,
-    momentum: float = 1.0,
-    center: float = 0.0,
-    mass: float = 1.0,
-    hbar: float = 1.0,
-) -> tuple[float, float]:
-    """Return analytic mean position and position variance."""
-
-    mean = center + momentum * t / mass
-    tau = 2.0 * hbar * a * t / mass
-    variance = (1.0 + tau**2) / (4.0 * a)
-    return mean, variance
-
-
 def packet_momentum_amplitude(
     p: ArrayLike,
     momentum: float,

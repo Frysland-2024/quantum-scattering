@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 import argparse
-import time
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -31,13 +29,7 @@ COLORS = ("C0", "C1", "C2", "C3", "C4", "C5")
 MARKERS = ("o", "s", "^", "D", "v", "*")
 BW_COLORS = ("red", "green", "dodgerblue", "darkorange", "magenta")
 ORANGE = "#ef6c00"
-REFERENCE_POLES = (
-    0.620971 - 0.000058j,
-    1.327197 - 0.015447j,
-    1.78458 - 0.17375j,
-    2.12442 - 0.56479j,
-    2.45549 - 1.11153j,
-)
+EXPECTED_RESONANCE_COUNT = 5
 
 
 def configuration(quick: bool) -> ComplexScalingConfig:
@@ -64,7 +56,7 @@ def read_part3_peaks() -> dict[str, float]:
     return {"E1": e1, "E2": e2}
 
 
-def load_part3_transmission() -> tuple[np.ndarray, np.ndarray, str]:
+def load_part3_transmission() -> tuple[np.ndarray, np.ndarray]:
     peaks = read_part3_peaks()
     energies = np.unique(
         np.r_[
@@ -76,22 +68,13 @@ def load_part3_transmission() -> tuple[np.ndarray, np.ndarray, str]:
         ]
     )
     scan = appendix_v_scan(energies, dx=0.0025)
-    return energies, np.abs(scan.T) ** 2, "recomputed with appendix_v_scan(dx=0.0025)"
+    return energies, np.abs(scan.T) ** 2
 
 
 def solve_family(
     angles: tuple[float, ...], config: ComplexScalingConfig
-) -> tuple[list[ComplexSpectrum], dict[str, float]]:
-    spectra: list[ComplexSpectrum] = []
-    runtimes: dict[str, float] = {}
-    for theta in angles:
-        started = time.perf_counter()
-        spectrum = solve_complex_spectrum(theta, config)
-        elapsed = time.perf_counter() - started
-        spectra.append(spectrum)
-        runtimes[f"theta_{theta:.2f}_seconds"] = elapsed
-        print(f"theta={theta:.2f}: {config.basis_size} eigenvalues in {elapsed:.2f} s")
-    return spectra, runtimes
+) -> list[ComplexSpectrum]:
+    return [solve_complex_spectrum(theta, config) for theta in angles]
 
 
 def banner(fig: plt.Figure, text: str) -> None:
@@ -323,14 +306,6 @@ def plot_breit_wigner_zoom(
     return path
 
 
-def cleanup_old_metadata(output: Path) -> None:
-    for name in ("part6_diagnostics.json", "part6_manifest.json"):
-        try:
-            (output / name).unlink()
-        except FileNotFoundError:
-            pass
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Part 6 non-Hermitian complex scaling and Breit-Wigner resonances"
@@ -354,9 +329,7 @@ def main() -> None:
     parser.add_argument("--quadrature-points", type=int, help="override profile N")
     args = parser.parse_args()
 
-    started = time.perf_counter()
     output = ensure_dir(args.output_dir.resolve())
-    cleanup_old_metadata(output)
 
     base = configuration(args.quick)
     config = ComplexScalingConfig(
@@ -368,16 +341,16 @@ def main() -> None:
     )
     config.validate()
     angles = tuple(args.angles)
-    spectra, _ = solve_family(angles, config)
+    spectra = solve_family(angles, config)
     tracks = identify_resonance_tracks(spectra)
-    if len(tracks) != len(REFERENCE_POLES):
+    if len(tracks) != EXPECTED_RESONANCE_COUNT:
         raise RuntimeError(
-            f"expected exactly {len(REFERENCE_POLES)} resonance poles, found {len(tracks)}"
+            f"expected exactly {EXPECTED_RESONANCE_COUNT} resonance poles, found {len(tracks)}"
         )
     print(
         "identified poles: "
         + "; ".join(
-            f"{track.label}={format_pole(track.pole, 8)} ({track.status})"
+            f"{track.label}={format_pole(track.pole, 8)}"
             for track in tracks
         )
     )
@@ -388,7 +361,7 @@ def main() -> None:
         plot_individual_spectra(output, spectra, config)
 
     if args.only in ("all", "breit-wigner"):
-        part3_energy, part3_transmission, _ = load_part3_transmission()
+        part3_energy, part3_transmission = load_part3_transmission()
         plot_all_breit_wigner(
             output,
             spectra,
@@ -406,10 +379,7 @@ def main() -> None:
             peaks,
         )
 
-    cleanup_old_metadata(output)
-    total_runtime = time.perf_counter() - started
     print(f"Part 6 outputs: {output}")
-    print(f"total runtime: {total_runtime:.2f} s")
 
 
 if __name__ == "__main__":

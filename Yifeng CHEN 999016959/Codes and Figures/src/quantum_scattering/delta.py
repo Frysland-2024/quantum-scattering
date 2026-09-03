@@ -31,7 +31,6 @@ class DeltaConvergenceRow:
     integral: float
     target: float
     absolute_error: float
-    grid_step: float
 
 
 def delta_convolution(
@@ -60,7 +59,6 @@ def delta_convolution(
         integral=integral,
         target=target,
         absolute_error=abs(integral - target),
-        grid_step=float(grid[1] - grid[0]),
     )
 
 

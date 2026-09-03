@@ -79,24 +79,7 @@ def save_figure(fig: plt.Figure, path: Path, *, dpi: int = 150) -> None:
     plt.close(fig)
 
 
-def clean_old_outputs(output: Path) -> None:
-    legacy_names = (
-        "harmonic_oscillator_validation.png",
-        "short_range_first11_combined.png",
-        "short_range_first11_separate.png",
-        "short_range_all_states.png",
-        "three_localized_states.png",
-        "part5_diagnostics.json",
-        "part5_manifest.json",
-    )
-    for name in legacy_names:
-        try:
-            (output / name).unlink()
-        except FileNotFoundError:
-            pass
-
-
-def harmonic_validation(output: Path, config: BasisConfig, kinetic_scheme: str = "teacher_grid") -> float:
+def harmonic_validation(output: Path, config: BasisConfig, kinetic_scheme: str = "teacher_grid") -> None:
     result = solve_box_basis(
         harmonic_potential,
         config.basis_size,
@@ -105,8 +88,6 @@ def harmonic_validation(output: Path, config: BasisConfig, kinetic_scheme: str =
         n_states=10,
         kinetic_scheme=kinetic_scheme,
     )
-    exact = np.arange(10, dtype=float) - 0.3
-    error = result.energies[:10] - exact
     x = np.linspace(-config.box_length / 2.0, config.box_length / 2.0, config.quadrature_points)
     states = orient_states_for_plot(reconstruct_states(x, result.coefficients[:, :10], config.box_length))
     plot_mask = np.abs(x) <= 10.0
@@ -126,10 +107,9 @@ def harmonic_validation(output: Path, config: BasisConfig, kinetic_scheme: str =
     ax.set_title(parameter_title(config))
     ax.legend(loc="upper right", fontsize=8)
     save_figure(fig, output / "part5_harmonic_validation.png")
-    return float(np.max(np.abs(error)))
 
 
-def short_range_first_states(output: Path, config: BasisConfig) -> float:
+def short_range_first_states(output: Path, config: BasisConfig) -> None:
     result = solve_box_basis(
         model_potential,
         config.basis_size,
@@ -201,10 +181,9 @@ def short_range_first_states(output: Path, config: BasisConfig) -> float:
     ax.legend(loc="upper right", fontsize=6)
     fig.suptitle(parameter_title(config), y=0.995)
     save_figure(fig, output / "part5_short_range_first11_panels.png")
-    return float(result.energies[0])
 
 
-def all_states_overlay(output: Path, config: BasisConfig) -> int:
+def all_states_overlay(output: Path, config: BasisConfig) -> None:
     result = solve_box_basis(
         model_potential,
         config.basis_size,
@@ -235,7 +214,6 @@ def all_states_overlay(output: Path, config: BasisConfig) -> int:
     ax.legend(loc="upper right")
     ax.text(30.0, -0.48, rf"Bound state $E_0={result.energies[0]:.6f}$", fontsize=11, color="black")
     save_figure(fig, output / "part5_box_spectrum_all_states.png")
-    return int(result.energies.size)
 
 
 def localization_metrics(result, config: BasisConfig, peaks: dict[str, float]) -> dict:
@@ -274,7 +252,7 @@ def select_triplet(result, config: BasisConfig, peaks: dict[str, float]):
     return first_index, second_index
 
 
-def localized_states(output: Path, config: BasisConfig, peaks: dict[str, float]) -> tuple[int, float, int, float]:
+def localized_states(output: Path, config: BasisConfig, peaks: dict[str, float]) -> None:
     result = solve_box_basis(
         model_potential,
         config.basis_size,
@@ -324,12 +302,6 @@ def localized_states(output: Path, config: BasisConfig, peaks: dict[str, float])
     )
     ax.legend(loc="upper right")
     save_figure(fig, output / "part5_localized_states.png")
-    return (
-        first_index,
-        float(result.energies[first_index]),
-        second_index,
-        float(result.energies[second_index]),
-    )
 
 
 def main() -> None:
@@ -352,7 +324,6 @@ def main() -> None:
     args = parser.parse_args()
 
     output = ensure_dir(args.output_dir.resolve())
-    clean_old_outputs(output)
     config = profiles(args.quick)
     if args.localized_basis is not None or args.localized_grid is not None:
         old = config["localized"]
@@ -365,21 +336,13 @@ def main() -> None:
 
     peaks = reference_peaks()
     if args.only in ("all", "harmonic"):
-        max_error = harmonic_validation(output, config["harmonic"], args.harmonic_kinetic)
-        print(f"harmonic max error: {max_error:.3e}")
+        harmonic_validation(output, config["harmonic"], args.harmonic_kinetic)
     if args.only in ("all", "short-range"):
-        ground = short_range_first_states(output, config["short_range"])
-        print(f"short-range ground energy: {ground:.9f}")
+        short_range_first_states(output, config["short_range"])
     if args.only in ("all", "spectrum"):
-        state_count = all_states_overlay(output, config["all_states"])
-        print(f"all-state spectrum: {state_count} states")
+        all_states_overlay(output, config["all_states"])
     if args.only in ("all", "localized"):
-        first_i, first_e, second_i, second_e = localized_states(output, config["localized"], peaks)
-        print(
-            f"localized states: first n={first_i} E={first_e:.9f}; "
-            f"second n={second_i} E={second_e:.9f}"
-        )
-    clean_old_outputs(output)
+        localized_states(output, config["localized"], peaks)
     print(f"outputs: {output}")
 
 

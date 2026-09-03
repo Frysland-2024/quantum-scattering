@@ -38,7 +38,7 @@ def main(argv: list[str] | None = None) -> int:
         include_gifs=not args.skip_gifs,
     )
     elapsed = time.perf_counter() - started
-    print(f"Part 1 generated {len(created)} artifacts in {elapsed:.2f} s")
+    print(f"Part 1 generated {len(created)} figures in {elapsed:.2f} s")
     for path in created:
         print(path.resolve())
     return 0

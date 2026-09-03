@@ -47,14 +47,6 @@ def gaussian_p(p: np.ndarray, alpha: float, p0: float, x0: float = 0.0,
     return pref * np.exp(-(p - p0) ** 2 / (4.0 * hbar**2 * alpha)) * np.exp(-1j * p * x0 / hbar)
 
 
-def delta_p(alpha: float, hbar: float = HBAR) -> float:
-    return hbar * np.sqrt(alpha)
-
-
-def delta_x(alpha: float) -> float:
-    return 1.0 / (2.0 * np.sqrt(alpha))
-
-
 def free_propagate_fft(psi0: np.ndarray, dx: float, t: float,
                        mass: float = MASS, hbar: float = HBAR) -> np.ndarray:
     """Numerical implementation of the lecture Fourier propagation integral."""

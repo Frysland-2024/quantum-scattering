@@ -193,26 +193,6 @@ def reconstruct_states(x: np.ndarray, coefficients: np.ndarray, box_length: floa
     return reconstructed
 
 
-def state_metrics(x: np.ndarray, states: np.ndarray, central_half_width: float = 12.0):
-    """Return finite-grid norm, central probability and parity expectation."""
-    x = np.asarray(x, dtype=float)
-    psi = np.asarray(states, dtype=float)
-    if psi.ndim == 1:
-        psi = psi[:, None]
-    if psi.shape[0] != x.size:
-        raise ValueError("the first state dimension must match x")
-    density = psi**2
-    norms = np.trapezoid(density, x, axis=0)
-    central = np.abs(x) <= central_half_width
-    central_probability = np.trapezoid(density[central], x[central], axis=0) / norms
-    reflected_overlap = np.trapezoid(psi * psi[::-1], x, axis=0) / norms
-    return {
-        "norm": norms,
-        "central_probability": central_probability,
-        "parity_expectation": reflected_overlap,
-    }
-
-
 def select_localized_resonance(energies: np.ndarray, central_probability: np.ndarray,
                                parity_expectation: np.ndarray, target_energy: float,
                                window: float = 0.08) -> tuple[int, np.ndarray]:

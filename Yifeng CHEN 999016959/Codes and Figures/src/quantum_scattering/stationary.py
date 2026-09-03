@@ -38,8 +38,6 @@ class SpectrumResult:
     energy: NDArray[np.float64]
     transmission_amplitude: NDArray[np.complex128]
     reflection_amplitude: NDArray[np.complex128]
-    incoming_coefficient: NDArray[np.complex128]
-    reflected_coefficient: NDArray[np.complex128]
 
     @property
     def transmission(self) -> NDArray[np.float64]:
@@ -49,9 +47,7 @@ class SpectrumResult:
     def reflection(self) -> NDArray[np.float64]:
         return np.abs(self.reflection_amplitude) ** 2
 
-    @property
-    def unitarity_error(self) -> NDArray[np.float64]:
-        return np.abs(self.transmission + self.reflection - 1.0)
+
 
 
 @dataclass(frozen=True)
@@ -59,14 +55,6 @@ class ContinuumState:
     x: NDArray[np.float64]
     energy: float
     raw_wavefunction: NDArray[np.complex128]
-    incoming_coefficient: complex
-    reflected_coefficient: complex
-    transmission_amplitude: complex
-    reflection_amplitude: complex
-
-    @property
-    def incoming_normalized_wavefunction(self) -> NDArray[np.complex128]:
-        return self.raw_wavefunction / (self.incoming_coefficient * np.sqrt(2.0 * np.pi))
 
 
 @dataclass(frozen=True)
@@ -83,9 +71,6 @@ class ResonancePeaks:
 
     first: ResonancePeak
     second: ResonancePeak
-    dx: float = FINITE_DIFFERENCE_DX
-    x_min: float = FINITE_DIFFERENCE_X_MIN
-    x_max: float = FINITE_DIFFERENCE_X_MAX
 
 
 def _fit_left_coefficients(
@@ -144,8 +129,6 @@ def transmission_spectrum(
         energy=energies,
         transmission_amplitude=transmission_amplitude,
         reflection_amplitude=reflection_amplitude,
-        incoming_coefficient=incoming,
-        reflected_coefficient=reflected,
     )
 
 
@@ -176,19 +159,10 @@ def raw_continuum_state(
             (2.0 + factor * (potential_values[index] - energy)) * psi[index]
             - psi[index + 1]
         )
-    incoming_array, reflected_array = _fit_left_coefficients(
-        np.array([psi[0]]), np.array([psi[1]]), np.array([k]), x[0], x[1]
-    )
-    incoming = complex(incoming_array[0])
-    reflected = complex(reflected_array[0])
     return ContinuumState(
         x=x,
         energy=float(energy),
         raw_wavefunction=psi,
-        incoming_coefficient=incoming,
-        reflected_coefficient=reflected,
-        transmission_amplitude=1.0 / incoming,
-        reflection_amplitude=reflected / incoming,
     )
 
 

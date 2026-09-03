@@ -89,33 +89,8 @@ def integrate_even_state(
     return solution
 
 
-def evaluate_even_resonance(
-    energy: complex,
-    theta: float,
-    x: np.ndarray,
-    outgoing_amplitude: complex,
-) -> np.ndarray:
-    """Evaluate psi(x exp(i theta)), using the outgoing form outside |x|=15."""
-    coordinate = np.asarray(x, dtype=float)
-    radius = np.abs(coordinate)
-    phase = np.exp(1j * theta)
-    momentum = outgoing_momentum(energy)
-    solution = integrate_even_state(energy, theta)
-
-    values = np.empty(radius.shape, dtype=np.complex128)
-    interior = radius <= MATCH_POINT
-    values[interior] = solution.sol(radius[interior])[0]
-    values[~interior] = outgoing_amplitude * np.exp(
-        1j * momentum * radius[~interior] * phase
-    )
-    return values
-
-
-def calculate_wavefunctions(
-    energy: complex,
-    x: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Return the original Siegert state and its theta=0.1 complex-scaled form."""
+def prepare_resonance_state(energy: complex):
+    """Prepare the unscaled and rotated branches once for both figures."""
     momentum = outgoing_momentum(energy)
     unscaled_solution = integrate_even_state(energy, 0.0)
     psi_at_match, derivative_at_match = unscaled_solution.sol(MATCH_POINT)
@@ -123,13 +98,47 @@ def calculate_wavefunctions(
     outgoing_scale = max(abs(momentum * psi_at_match), np.finfo(float).tiny)
     if outgoing_residual / outgoing_scale > 1.0e-5:
         raise RuntimeError("the selected energy does not satisfy the outgoing boundary condition")
-    outgoing_amplitude = complex(psi_at_match) * np.exp(
-        -1j * momentum * MATCH_POINT
-    )
+    outgoing_amplitude = complex(psi_at_match) * np.exp(-1j * momentum * MATCH_POINT)
+    scaled_solution = integrate_even_state(energy, SCALING_ANGLE)
+    return momentum, outgoing_amplitude, unscaled_solution, scaled_solution
 
-    psi = evaluate_even_resonance(energy, 0.0, x, outgoing_amplitude)
+
+def evaluate_even_resonance(
+    x: np.ndarray,
+    *,
+    theta: float,
+    momentum: complex,
+    outgoing_amplitude: complex,
+    interior_solution,
+) -> np.ndarray:
+    """Evaluate one prepared even branch inside and outside the matching point."""
+    coordinate = np.asarray(x, dtype=float)
+    radius = np.abs(coordinate)
+    rotation = np.exp(1j * theta)
+    values = np.empty(radius.shape, dtype=np.complex128)
+    interior = radius <= MATCH_POINT
+    values[interior] = interior_solution.sol(radius[interior])[0]
+    values[~interior] = outgoing_amplitude * np.exp(
+        1j * momentum * radius[~interior] * rotation
+    )
+    return values
+
+
+def calculate_wavefunctions(x: np.ndarray, prepared) -> tuple[np.ndarray, np.ndarray]:
+    momentum, outgoing_amplitude, unscaled_solution, scaled_solution = prepared
+    psi = evaluate_even_resonance(
+        x,
+        theta=0.0,
+        momentum=momentum,
+        outgoing_amplitude=outgoing_amplitude,
+        interior_solution=unscaled_solution,
+    )
     psi_theta = evaluate_even_resonance(
-        energy, SCALING_ANGLE, x, outgoing_amplitude
+        x,
+        theta=SCALING_ANGLE,
+        momentum=momentum,
+        outgoing_amplitude=outgoing_amplitude,
+        interior_solution=scaled_solution,
     )
     return psi, psi_theta
 
@@ -149,13 +158,14 @@ def banner(fig: plt.Figure, text: str) -> None:
 def plot_wavefunction(
     output: Path,
     energy: complex,
+    prepared,
     *,
     x_limit: float,
     points: int,
     number: int,
 ) -> Path:
     x = np.linspace(-x_limit, x_limit, points)
-    psi, psi_theta = calculate_wavefunctions(energy, x)
+    psi, psi_theta = calculate_wavefunctions(x, prepared)
 
     fig, axes = plt.subplots(2, 1, figsize=(13.8, 7.3), sharex=True)
     banner(fig, f"wavefunction - plot {number}")
@@ -206,6 +216,7 @@ def generate_wavefunction_figures(
 ) -> list[Path]:
     output = ensure_dir(output.resolve())
     energy = find_second_resonance(configuration(quick))
+    prepared = prepare_resonance_state(energy)
     print(
         "second resonance used for wavefunctions: "
         f"{energy.real:.9f}{energy.imag:+.9f}i"
@@ -214,6 +225,7 @@ def generate_wavefunction_figures(
         plot_wavefunction(
             output,
             energy,
+            prepared,
             x_limit=200.0,
             points=8001 if quick else 12001,
             number=1,
@@ -221,6 +233,7 @@ def generate_wavefunction_figures(
         plot_wavefunction(
             output,
             energy,
+            prepared,
             x_limit=500.0,
             points=12001 if quick else 24001,
             number=2,

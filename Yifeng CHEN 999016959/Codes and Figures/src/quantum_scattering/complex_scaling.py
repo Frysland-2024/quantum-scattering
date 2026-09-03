@@ -48,26 +48,14 @@ class ComplexSpectrum:
     """Complex eigenvalues at one scaling angle."""
 
     theta: float
-    length: float
-    basis_size: int
-    grid_points: int
     eigenvalues: NDArray[np.complex128]
-    parity: tuple[str, ...]
-    maximum_odd_moment: float
-    cross_parity_coupling_bound: float
-    hamiltonian_symmetry_error: float
 
 
 @dataclass(frozen=True)
 class ResonancePole:
     """A resonance exposed above the rotated continuum at theta_max."""
 
-    number: int
     energy: complex
-    gamma: float
-    first_exposed_theta: float
-    supporting_angles: tuple[float, ...]
-    maximum_angle_spread: float
 
 
 def complex_scaled_potential(
@@ -85,7 +73,7 @@ def _complex_cosine_moments(
     length: float,
     basis_size: int,
     grid_points: int,
-) -> tuple[NDArray[np.complex128], float]:
+) -> NDArray[np.complex128]:
     """Return trapezoidal cosine moments through a complex DCT-I."""
 
     if grid_points <= 2 * basis_size:
@@ -95,11 +83,10 @@ def _complex_cosine_moments(
     spacing = length / (grid_points - 1)
     moments = np.asarray(0.5 * spacing * dct(values, type=1), dtype=np.complex128)
     moments = moments[: 2 * basis_size + 1]
-    maximum_odd = float(np.max(np.abs(moments[1::2])))
     # V(x exp(i theta)) remains even.  The exact odd moments vanish; setting
     # their roundoff remnants to zero makes the parity separation explicit.
     moments[1::2] = 0.0
-    return moments, maximum_odd
+    return moments
 
 
 def _complex_hamiltonian_block(
@@ -135,27 +122,21 @@ def solve_complex_scaled_spectrum(
     if length <= 0 or basis_size < 4 or grid_points < 3:
         raise ValueError("length, basis_size, and grid_points must be positive")
 
-    moments, maximum_odd = _complex_cosine_moments(
+    moments = _complex_cosine_moments(
         theta=theta,
         length=length,
         basis_size=basis_size,
         grid_points=grid_points,
     )
     all_values: list[NDArray[np.complex128]] = []
-    all_parity: list[str] = []
-    maximum_symmetry_error = 0.0
     indices = np.arange(1, basis_size + 1, dtype=np.int64)
-    for selector, parity_label in ((indices % 2 == 1, "even"), (indices % 2 == 0, "odd")):
+    for selector in (indices % 2 == 1, indices % 2 == 0):
         block_indices = indices[selector]
         hamiltonian = _complex_hamiltonian_block(
             block_indices,
             moments,
             theta=theta,
             length=length,
-        )
-        maximum_symmetry_error = max(
-            maximum_symmetry_error,
-            float(np.max(np.abs(hamiltonian - hamiltonian.T))),
         )
         values = np.asarray(
             eigvals(hamiltonian, overwrite_a=True, check_finite=False),
@@ -164,24 +145,11 @@ def solve_complex_scaled_spectrum(
         if theta == 0.0:
             values = values.real.astype(np.complex128)
         all_values.append(values)
-        all_parity.extend([parity_label] * values.size)
 
     eigenvalues = np.concatenate(all_values)
-    parity = np.asarray(all_parity, dtype=object)
     order = np.lexsort((eigenvalues.imag, eigenvalues.real))
     eigenvalues = eigenvalues[order]
-    parity = parity[order]
-    return ComplexSpectrum(
-        theta=float(theta),
-        length=float(length),
-        basis_size=int(basis_size),
-        grid_points=int(grid_points),
-        eigenvalues=eigenvalues,
-        parity=tuple(str(value) for value in parity),
-        maximum_odd_moment=maximum_odd,
-        cross_parity_coupling_bound=2.0 * maximum_odd / length,
-        hamiltonian_symmetry_error=maximum_symmetry_error,
-    )
+    return ComplexSpectrum(theta=float(theta), eigenvalues=eigenvalues)
 
 
 def breit_wigner(energy: NDArray[np.float64], pole: complex) -> NDArray[np.float64]:
@@ -198,19 +166,13 @@ def identify_resonance_poles(
     spectra: Iterable[ComplexSpectrum],
     *,
     exposure_margin: float = 0.05,
-    matching_tolerance: float = 2.0e-3,
 ) -> tuple[ResonancePole, ...]:
-    """Identify poles separated from the continuum ray at the largest theta.
+    """Select resonance poles exposed above the rotated continuum ray."""
 
-    Multiplication by exp(2 i theta) rotates the free continuum back to the
-    real axis.  Resonances exposed by complex scaling then have a positive
-    rotated imaginary part.  Candidates are separated at the largest angle;
-    their supporting angles obey 2 theta >= |arg(E)| + 0.05, the geometric
-    exposure condition used in the Lecture-10 interpretation.
-    """
-
-    ordered = sorted(spectra, key=lambda item: item.theta)
-    nonzero = [item for item in ordered if item.theta > 0]
+    nonzero = sorted(
+        (spectrum for spectrum in spectra if spectrum.theta > 0.0),
+        key=lambda spectrum: spectrum.theta,
+    )
     if not nonzero:
         raise ValueError("at least one non-zero theta spectrum is required")
     final = nonzero[-1]
@@ -224,30 +186,7 @@ def identify_resonance_poles(
     )
     candidates = values[mask]
     candidates = candidates[np.argsort(candidates.real)]
-
-    poles: list[ResonancePole] = []
-    for number, candidate in enumerate(candidates, start=1):
-        support: list[tuple[float, complex]] = []
-        for spectrum in nonzero:
-            index = int(np.argmin(np.abs(spectrum.eigenvalues - candidate)))
-            match = complex(spectrum.eigenvalues[index])
-            is_exposed = 2.0 * spectrum.theta >= abs(float(np.angle(match))) + 0.05
-            if abs(match - candidate) <= matching_tolerance and is_exposed:
-                support.append((spectrum.theta, match))
-        if not support:
-            support = [(final.theta, complex(candidate))]
-        spread = max(abs(value - candidate) for _, value in support)
-        poles.append(
-            ResonancePole(
-                number=number,
-                energy=complex(candidate),
-                gamma=-2.0 * float(candidate.imag),
-                first_exposed_theta=float(support[0][0]),
-                supporting_angles=tuple(float(theta) for theta, _ in support),
-                maximum_angle_spread=float(spread),
-            )
-        )
-    return tuple(poles)
+    return tuple(ResonancePole(energy=complex(candidate)) for candidate in candidates)
 
 
 def _profile_parameters(profile: str) -> tuple[int, float, int]:
@@ -324,8 +263,6 @@ def generate_part6(
     basis_size, length, grid_points = _profile_parameters(profile)
     output = Path(root) / "part6_complex_scaling"
     output.mkdir(parents=True, exist_ok=True)
-    for name in ("part6_diagnostics.json", "part6_manifest.json"):
-        (output / name).unlink(missing_ok=True)
     created: list[Path] = []
 
     spectra = [
