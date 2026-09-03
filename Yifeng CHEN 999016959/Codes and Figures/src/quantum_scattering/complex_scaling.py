@@ -13,7 +13,6 @@ one dense J by J matrix.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -28,7 +27,6 @@ from numpy.typing import NDArray
 from scipy.fft import dct
 from scipy.linalg import eigvals
 
-from .potential import double_barrier_potential
 from .stationary import (
     FINITE_DIFFERENCE_DX,
     FINITE_DIFFERENCE_X_MAX,
@@ -39,14 +37,6 @@ from .stationary import (
 
 
 THETA_VALUES: tuple[float, ...] = (0.00, 0.05, 0.10, 0.15, 0.20, 0.25)
-TEACHER_POLE_REFERENCES: tuple[complex, ...] = (
-    0.620970951 - 0.000058267j,
-    1.327197073 - 0.015447319j,
-    1.784582869 - 0.173750710j,
-    2.124421892 - 0.564794982j,
-    2.455486272 - 1.111531572j,
-)
-
 _COLORS = ("tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown")
 _MARKERS = ("o", "s", "^", "D", "v", "*")
 _BW_COLORS = ("red", "limegreen", "dodgerblue", "darkorange", "magenta")
@@ -323,33 +313,19 @@ def _save(fig: plt.Figure, path: Path, *, dpi: int = 150) -> Path:
     return path
 
 
-def _fwhm(energy: NDArray[np.float64], transmission: NDArray[np.float64], peak: float) -> float:
-    order = np.argsort(energy)
-    x = energy[order]
-    y = transmission[order]
-    peak_index = int(np.argmin(np.abs(x - peak)))
-    half = 0.5 * float(y[peak_index])
-    left_candidates = np.flatnonzero(y[:peak_index] <= half)
-    right_candidates = np.flatnonzero(y[peak_index + 1 :] <= half)
-    if left_candidates.size == 0 or right_candidates.size == 0:
-        return float("nan")
-    left = int(left_candidates[-1])
-    right = int(peak_index + 1 + right_candidates[0])
-    left_cross = float(np.interp(half, [y[left], y[left + 1]], [x[left], x[left + 1]]))
-    right_cross = float(np.interp(half, [y[right], y[right - 1]], [x[right], x[right - 1]]))
-    return right_cross - left_cross
-
 
 def generate_part6(
     root: Path | str = Path("output"),
     *,
     profile: str = "reference",
 ) -> list[Path]:
-    """Generate the four teacher-style Part-6 figures and audit files."""
+    """Generate the four teacher-style Part-6 PNG figures."""
 
     basis_size, length, grid_points = _profile_parameters(profile)
     output = Path(root) / "part6_complex_scaling"
     output.mkdir(parents=True, exist_ok=True)
+    for name in ("part6_diagnostics.json", "part6_manifest.json"):
+        (output / name).unlink(missing_ok=True)
     created: list[Path] = []
 
     spectra = [
@@ -515,137 +491,12 @@ def generate_part6(
     fig.subplots_adjust(top=0.88, wspace=0.22)
     created.append(_save(fig, output / "breit_wigner_profiles_zoom.png"))
 
-    continuum_checks: list[dict[str, object]] = []
-    for spectrum in spectra:
-        values = _display_values(spectrum)
-        mask = (values.real >= 2.5) & (values.real <= 3.0)
-        high = values[mask]
-        if spectrum.theta == 0.0 or high.size < 3:
-            fitted_slope = 0.0
-            expected_slope = -float(np.tan(2.0 * spectrum.theta))
-            slope_error = abs(fitted_slope - expected_slope)
-        else:
-            fitted_slope = float(np.dot(high.real, high.imag) / np.dot(high.real, high.real))
-            expected_slope = -float(np.tan(2.0 * spectrum.theta))
-            slope_error = abs(fitted_slope - expected_slope)
-        continuum_checks.append(
-            {
-                "theta": spectrum.theta,
-                "expected_slope": expected_slope,
-                "fitted_high_energy_slope": fitted_slope,
-                "absolute_slope_error": slope_error,
-                "displayed_eigenvalue_count": int(values.size),
-            }
-        )
-
-    bound_states = []
-    for spectrum in spectra:
-        negative = spectrum.eigenvalues[spectrum.eigenvalues.real < 0]
-        bound_states.append(complex(negative[np.argmax(negative.real)]))
-    bound_reference = bound_states[0]
-    first_mask = (energy >= first_grid[0]) & (energy <= first_grid[-1])
-    second_mask = (energy >= second_grid[0]) & (energy <= second_grid[-1])
-    first_bw = breit_wigner(energy[first_mask], poles[0].energy)
-    second_bw = breit_wigner(energy[second_mask], poles[1].energy)
-    diagnostics = {
-        "method": "Lecture-10 sine-box basis with global complex scaling and parity-block diagonalization",
-        "complex_scaled_hamiltonian": "H(theta)=exp(-2 i theta) T + V(x exp(i theta))",
-        "basis": "sqrt(2/L) sin(j*pi*(x+L/2)/L), j=1..J",
-        "potential_matrix": "V_ij=(C_|i-j|-C_i+j)/L from a complex trapezoidal DCT-I",
-        "profile": profile,
-        "parameters": {"J": basis_size, "L": length, "N": grid_points, "theta": list(THETA_VALUES)},
-        "parity_block_sizes": [int((basis_size + 1) // 2), int(basis_size // 2)],
-        "spectra": [
-            {
-                "theta": spectrum.theta,
-                "eigenvalue_count": int(spectrum.eigenvalues.size),
-                "maximum_odd_cosine_moment": spectrum.maximum_odd_moment,
-                "cross_parity_coupling_bound": spectrum.cross_parity_coupling_bound,
-                "hamiltonian_symmetry_error": spectrum.hamiltonian_symmetry_error,
-            }
-            for spectrum in spectra
-        ],
-        "continuum_rotation_checks": continuum_checks,
-        "bound_state": {
-            "values": [[value.real, value.imag] for value in bound_states],
-            "maximum_theta_spread": float(max(abs(value - bound_reference) for value in bound_states)),
-        },
-        "resonance_poles": [
-            {
-                "number": pole.number,
-                "real": pole.energy.real,
-                "imag": pole.energy.imag,
-                "gamma": pole.gamma,
-                "first_exposed_theta": pole.first_exposed_theta,
-                "supporting_angles": list(pole.supporting_angles),
-                "maximum_angle_spread": pole.maximum_angle_spread,
-                "teacher_reference": [reference.real, reference.imag],
-                "absolute_reference_error": abs(pole.energy - reference),
-                "multi_angle_stable": len(pole.supporting_angles) >= 2,
-            }
-            for pole, reference in zip(poles, TEACHER_POLE_REFERENCES, strict=True)
-        ],
-        "part3_cross_check": {
-            "method": "three-point backward finite difference",
-            "dx": FINITE_DIFFERENCE_DX,
-            "first_peak_energy": part3_peaks.first.energy,
-            "second_peak_energy": part3_peaks.second.energy,
-            "pole_minus_part3_peak": [
-                poles[0].energy.real - part3_peaks.first.energy,
-                poles[1].energy.real - part3_peaks.second.energy,
-            ],
-            "first_numerical_fwhm": _fwhm(energy[first_mask], transmission[first_mask], part3_peaks.first.energy),
-            "second_numerical_fwhm": _fwhm(energy[second_mask], transmission[second_mask], part3_peaks.second.energy),
-            "first_breit_wigner_gamma": poles[0].gamma,
-            "second_breit_wigner_gamma": poles[1].gamma,
-            "first_zoom_rmse": float(np.sqrt(np.mean((transmission[first_mask] - first_bw) ** 2))),
-            "second_zoom_rmse": float(np.sqrt(np.mean((transmission[second_mask] - second_bw) ** 2))),
-            "maximum_unitarity_error": float(np.max(hermitian.unitarity_error)),
-        },
-        "breit_wigner_formula_checks": [
-            {
-                "resonance": pole.number,
-                "at_center": float(breit_wigner(np.array([pole.energy.real]), pole.energy)[0]),
-                "at_minus_gamma_over_2": float(
-                    breit_wigner(np.array([pole.energy.real - pole.gamma / 2.0]), pole.energy)[0]
-                ),
-                "at_plus_gamma_over_2": float(
-                    breit_wigner(np.array([pole.energy.real + pole.gamma / 2.0]), pole.energy)[0]
-                ),
-            }
-            for pole in poles
-        ],
-        "selection_note": "Candidates are separated above the back-rotated continuum at theta=0.25; angle support requires 2 theta >= |arg(E)| + 0.05. Teacher references are used only for audit errors.",
-        "fifth_pole_note": "The broad fifth pole is first exposed only at theta=0.25, so the requested angle set provides single-angle rather than multi-angle stability evidence.",
-    }
-    diagnostics_path = output / "part6_diagnostics.json"
-    diagnostics_path.write_text(json.dumps(diagnostics, indent=2), encoding="utf-8")
-    created.append(diagnostics_path)
-
-    manifest_path = output / "part6_manifest.json"
-    manifest_path.write_text(
-        json.dumps(
-            {
-                "profile": profile,
-                "parameters": {"J": basis_size, "L": length, "N": grid_points},
-                "theta": list(THETA_VALUES),
-                "static_figure_count": 4,
-                "resonance_count": len(poles),
-                "artifacts": [path.name for path in created],
-                "diagnostics": diagnostics_path.name,
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    created.append(manifest_path)
     return created
 
 
 __all__ = [
     "ComplexSpectrum",
     "ResonancePole",
-    "TEACHER_POLE_REFERENCES",
     "THETA_VALUES",
     "breit_wigner",
     "complex_scaled_potential",

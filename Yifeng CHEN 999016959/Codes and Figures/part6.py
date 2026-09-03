@@ -1,4 +1,4 @@
-"""Part 6: generate complex-scaling, Breit--Wigner, and wavefunction results."""
+"""Part 6: generate complex-scaling, Breit--Wigner, and wavefunction figures."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from quantum_scattering.resonance_wavefunction import generate_resonance_wavefun
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Generate Part 6 complex-scaled spectra, Breit-Wigner comparisons, and resonance wavefunctions."
+        description="Generate the six Part 6 complex-scaling and resonance figures."
     )
     parser.add_argument("--output-dir", type=Path, default=Path("output"))
     parser.add_argument(
@@ -36,9 +36,14 @@ def main(argv: list[str] | None = None) -> int:
     created.extend(
         generate_resonance_wavefunctions(args.output_dir, profile=args.profile)
     )
+    figures = [
+        Path(path)
+        for path in created
+        if Path(path).suffix.lower() == ".png" and Path(path).exists()
+    ]
     elapsed = time.perf_counter() - started
-    print(f"Part 6 generated {len(created)} artifacts in {elapsed:.2f} s")
-    for path in created:
+    print(f"Part 6 generated {len(figures)} figures in {elapsed:.2f} s")
+    for path in figures:
         print(path.resolve())
     return 0
 
