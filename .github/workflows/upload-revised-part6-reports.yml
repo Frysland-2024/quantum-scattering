@@ -1,0 +1,54 @@
+name: Upload revised Part 6 reports
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/scripts/patch_revised_part6_reports.py"
+      - ".github/workflows/upload-revised-part6-reports.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-reports:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Apply the revised Part 6 sections
+        run: python .github/scripts/patch_revised_part6_reports.py
+
+      - name: Validate both Word files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          reports = [
+              Path("Shufan ZHANG 999018435/quantum_scattering_report.docx"),
+              Path("Yifeng CHEN 999016959/Quantum_Scattering_Project_Report.docx"),
+          ]
+          for path in reports:
+              with ZipFile(path) as archive:
+                  archive.testzip()
+                  xml = archive.read("word/document.xml")
+              assert xml.count(b"6.4 Comparison of resonance energies") == 1, path
+              assert b"Gamma_1" in xml or b"Gamma" in xml, path
+              print(f"validated {path}")
+          PY
+
+      - name: Commit the revised reports
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            "Shufan ZHANG 999018435/quantum_scattering_report.docx" \
+            "Yifeng CHEN 999016959/Quantum_Scattering_Project_Report.docx"
+          if ! git diff --cached --quiet; then
+            git commit -m "Expand Part 6 calculation and method comparison"
+            git push
+          fi
