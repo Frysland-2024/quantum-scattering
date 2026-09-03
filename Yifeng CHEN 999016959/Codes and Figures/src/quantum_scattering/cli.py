@@ -9,6 +9,7 @@ from pathlib import Path
 from .figures import generate_all, generate_part1, generate_part2, generate_part3, generate_part4
 from .box_basis import generate_part5
 from .complex_scaling import generate_part6
+from .resonance_wavefunction import generate_resonance_wavefunctions
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -68,7 +69,7 @@ def cleanup_non_deliverables(root: Path) -> None:
     _remove_if_present(part5 / "part5_diagnostics.json")
     _remove_if_present(part5 / "part5_manifest.json")
 
-    # Part 6: keep the four PNG figures only.
+    # Part 6: keep the six PNG figures only.
     part6 = root / "part6_complex_scaling"
     _remove_if_present(part6 / "part6_diagnostics.json")
     _remove_if_present(part6 / "part6_manifest.json")
@@ -80,6 +81,9 @@ def main(argv: list[str] | None = None) -> int:
     include_gifs = not args.skip_gifs
     if args.part == "all":
         created = generate_all(args.output_dir, profile=args.profile, include_gifs=include_gifs)
+        created.extend(
+            generate_resonance_wavefunctions(args.output_dir, profile=args.profile)
+        )
     elif args.part == "part1":
         created = generate_part1(args.output_dir, profile=args.profile, include_gifs=include_gifs)
     elif args.part == "part2":
@@ -92,6 +96,9 @@ def main(argv: list[str] | None = None) -> int:
         created = generate_part5(args.output_dir, profile=args.profile)
     else:
         created = generate_part6(args.output_dir, profile=args.profile)
+        created.extend(
+            generate_resonance_wavefunctions(args.output_dir, profile=args.profile)
+        )
 
     cleanup_non_deliverables(args.output_dir)
     created = [path for path in created if Path(path).exists()]

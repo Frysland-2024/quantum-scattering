@@ -1,4 +1,4 @@
-"""Part 6: generate complex-scaling and Breit--Wigner results."""
+"""Part 6: generate complex-scaling, Breit--Wigner, and wavefunction results."""
 
 from __future__ import annotations
 
@@ -12,11 +12,12 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from quantum_scattering.complex_scaling import generate_part6
+from quantum_scattering.resonance_wavefunction import generate_resonance_wavefunctions
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Generate Part 6 complex-scaled spectra and Breit-Wigner comparisons."
+        description="Generate Part 6 complex-scaled spectra, Breit-Wigner comparisons, and resonance wavefunctions."
     )
     parser.add_argument("--output-dir", type=Path, default=Path("output"))
     parser.add_argument(
@@ -32,6 +33,9 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     started = time.perf_counter()
     created = generate_part6(args.output_dir, profile=args.profile)
+    created.extend(
+        generate_resonance_wavefunctions(args.output_dir, profile=args.profile)
+    )
     elapsed = time.perf_counter() - started
     print(f"Part 6 generated {len(created)} artifacts in {elapsed:.2f} s")
     for path in created:

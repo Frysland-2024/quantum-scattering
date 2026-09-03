@@ -32,3 +32,8 @@ part6 = [sys.executable, str(ROOT / "part6_complex_scaling.py")]
 if args.quick:
     part6.append("--quick")
 subprocess.run(part6, check=True, cwd=ROOT)
+
+part6_wavefunctions = [sys.executable, str(ROOT / "part6_resonance_wavefunctions.py")]
+if args.quick:
+    part6_wavefunctions.append("--quick")
+subprocess.run(part6_wavefunctions, check=True, cwd=ROOT)

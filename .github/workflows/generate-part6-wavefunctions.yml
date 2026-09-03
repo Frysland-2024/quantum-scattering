@@ -1,0 +1,61 @@
+name: Generate Part 6 wavefunctions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/generate-part6-wavefunctions.yml"
+      - "Shufan ZHANG 999018435/codes and figures/part6_resonance_wavefunctions.py"
+      - "Yifeng CHEN 999016959/Codes and Figures/src/quantum_scattering/resonance_wavefunction.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            Shufan ZHANG 999018435/codes and figures/requirements.txt
+            Yifeng CHEN 999016959/Codes and Figures/pyproject.toml
+
+      - name: Install numerical dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "numpy>=2.0,<3" "scipy>=1.13,<2" "matplotlib>=3.8,<4" "pillow>=10,<13"
+
+      - name: Generate Shufan wavefunction figures
+        env:
+          MPLBACKEND: Agg
+        run: python "Shufan ZHANG 999018435/codes and figures/part6_resonance_wavefunctions.py"
+
+      - name: Generate Yifeng wavefunction figures
+        env:
+          MPLBACKEND: Agg
+          PYTHONPATH: Yifeng CHEN 999016959/Codes and Figures/src
+        run: >-
+          python -c "from pathlib import Path; from quantum_scattering.resonance_wavefunction import generate_resonance_wavefunctions; generate_resonance_wavefunctions(Path('Yifeng CHEN 999016959/Codes and Figures/output'), profile='reference')"
+
+      - name: Commit generated figures
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            "Shufan ZHANG 999018435/codes and figures/outputs/part6/part6_resonance_wavefunction_near.png" \
+            "Shufan ZHANG 999018435/codes and figures/outputs/part6/part6_resonance_wavefunction_far.png" \
+            "Yifeng CHEN 999016959/Codes and Figures/output/part6_complex_scaling/resonance_wavefunction_near.png" \
+            "Yifeng CHEN 999016959/Codes and Figures/output/part6_complex_scaling/resonance_wavefunction_far.png"
+          if ! git diff --cached --quiet; then
+            git commit -m "Add Part 6 resonance wavefunction outputs"
+            git push
+          fi
