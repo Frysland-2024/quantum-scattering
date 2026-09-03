@@ -1,4 +1,4 @@
-name: Export current reports (temporary)
+name: Apply targeted report fixes (temporary)
 
 on:
   push:
@@ -7,20 +7,144 @@ on:
       - ".github/workflows/export-current-reports-temp.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  export:
+  edit-and-commit:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-      - name: Upload current reports
-        uses: actions/upload-artifact@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          name: current-quantum-scattering-reports
-          path: |
-            Shufan ZHANG 999018435/quantum_scattering_report.docx
-            Yifeng CHEN 999016959/Quantum_Scattering_Project_Report.docx
-          if-no-files-found: error
-          retention-days: 1
+          python-version: "3.12"
+
+      - name: Install XML dependency
+        run: python -m pip install --quiet lxml
+
+      - name: Apply only the requested wording fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          from lxml import etree
+          import os
+
+          W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+          NS = {"w": W_NS}
+
+          def paragraph_text(paragraph):
+              return "".join((node.text or "") for node in paragraph.xpath(".//w:t", namespaces=NS))
+
+          def rewrite_docx(path: Path, editor):
+              with ZipFile(path, "r") as source:
+                  root = etree.fromstring(source.read("word/document.xml"))
+                  editor(root)
+                  document_xml = etree.tostring(
+                      root,
+                      xml_declaration=True,
+                      encoding="UTF-8",
+                      standalone="yes",
+                  )
+                  temp = path.with_suffix(".tmp.docx")
+                  with ZipFile(temp, "w", ZIP_DEFLATED) as target:
+                      for item in source.infolist():
+                          data = document_xml if item.filename == "word/document.xml" else source.read(item.filename)
+                          target.writestr(item, data)
+              os.replace(temp, path)
+
+          shufan = Path("Shufan ZHANG 999018435/quantum_scattering_report.docx")
+          yifeng = Path("Yifeng CHEN 999016959/Quantum_Scattering_Project_Report.docx")
+
+          def edit_shufan(root):
+              matches = 0
+              for paragraph in root.xpath(".//w:p", namespaces=NS):
+                  if "At fixed α=1, as p0 increases" in paragraph_text(paragraph):
+                      for node in paragraph.xpath(".//w:t", namespaces=NS):
+                          if node.text:
+                              node.text = node.text.replace("p0", "p₀")
+                      matches += 1
+              if matches != 1:
+                  raise RuntimeError(f"Shufan target matches: {matches}; expected 1")
+
+          def edit_yifeng(root):
+              counts = {"part1_1": 0, "grammar": 0, "transmission": 0}
+              concise_part1_1 = (
+                  "With p₀ = 1 fixed, increasing a makes the real-space probability distribution "
+                  "narrower because Δx=1/(2√a) at t=0."
+              )
+              part4_4_tail = (
+                  ", and uses an extremely small momentum width because this resonance is very narrow. "
+                  "Nearly all spectral components have transmission close to one, so most of the wave "
+                  "passes through the potential. The very small momentum width also makes the packet "
+                  "very broad in real space. "
+              )
+
+              for paragraph in root.xpath(".//w:p", namespaces=NS):
+                  text = paragraph_text(paragraph)
+                  nodes = paragraph.xpath(".//w:t", namespaces=NS)
+
+                  if text.startswith("Here p0 = 1 is fixed, increasing a makes the probability distribution narrower"):
+                      nodes[0].text = concise_part1_1
+                      for node in nodes[1:]:
+                          node.text = ""
+                      counts["part1_1"] += 1
+
+                  elif "becomes wider as time increase." in text:
+                      changed = False
+                      for node in nodes:
+                          if node.text and "as time increase." in node.text:
+                              node.text = node.text.replace("as time increase.", "as time increases.")
+                              changed = True
+                      if not changed:
+                          raise RuntimeError("Yifeng grammar phrase was not found in one text node")
+                      counts["grammar"] += 1
+
+                  elif "integrated transmission probability of about 0.9984" in text:
+                      if len(nodes) < 3:
+                          raise RuntimeError(f"Unexpected Part 4.4 text-node count: {len(nodes)}")
+                      nodes[2].text = part4_4_tail
+                      for node in nodes[3:]:
+                          node.text = ""
+                      counts["transmission"] += 1
+
+              expected = {"part1_1": 1, "grammar": 1, "transmission": 1}
+              if counts != expected:
+                  raise RuntimeError(f"Yifeng target counts: {counts}; expected {expected}")
+
+          rewrite_docx(shufan, edit_shufan)
+          rewrite_docx(yifeng, edit_yifeng)
+
+          def all_text(path: Path) -> str:
+              with ZipFile(path, "r") as source:
+                  root = etree.fromstring(source.read("word/document.xml"))
+              return "\n".join(paragraph_text(p) for p in root.xpath(".//w:p", namespaces=NS))
+
+          shufan_text = all_text(shufan)
+          yifeng_text = all_text(yifeng)
+          assert "as p₀ increases" in shufan_text
+          assert "as p0 increases" not in shufan_text
+          assert "With p₀ = 1 fixed" in yifeng_text
+          assert "as time increases." in yifeng_text
+          assert "as time increase." not in yifeng_text
+          assert "0.9984" not in yifeng_text
+          assert "most of the wave passes through the potential" in yifeng_text
+          PY
+
+      - name: Validate DOCX archives
+        run: |
+          unzip -t "Shufan ZHANG 999018435/quantum_scattering_report.docx" >/dev/null
+          unzip -t "Yifeng CHEN 999016959/Quantum_Scattering_Project_Report.docx" >/dev/null
+
+      - name: Commit the two reports and remove this temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            "Shufan ZHANG 999018435/quantum_scattering_report.docx" \
+            "Yifeng CHEN 999016959/Quantum_Scattering_Project_Report.docx"
+          git rm ".github/workflows/export-current-reports-temp.yml"
+          git commit -m "Fix minor wording in both reports"
+          git push origin main
