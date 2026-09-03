@@ -1,0 +1,178 @@
+name: Differentiate Part 6 wording (temporary)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/deduplicate-part6-temp.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  edit-and-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install DOCX dependency
+        run: python -m pip install --quiet python-docx
+
+      - name: Differentiate Part 6 text only
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from docx import Document
+          from difflib import SequenceMatcher
+          import re
+          import zipfile
+
+          def replace_exact(doc, replacements, label):
+              remaining = dict(replacements)
+              for paragraph in doc.paragraphs:
+                  key = paragraph.text.strip()
+                  if key in remaining:
+                      new = remaining.pop(key)
+                      if paragraph.runs:
+                          paragraph.runs[0].text = new
+                          for run in paragraph.runs[1:]:
+                              run.text = ""
+                      else:
+                          paragraph.add_run(new)
+              if remaining:
+                  raise RuntimeError(
+                      f"{label}: missing {len(remaining)} target paragraphs:\n"
+                      + "\n---\n".join(remaining)
+                  )
+
+          shufan_path = Path("Shufan ZHANG 999018435/quantum_scattering_report.docx")
+          yifeng_path = Path("Yifeng CHEN 999016959/Quantum_Scattering_Project_Report.docx")
+
+          shufan = Document(shufan_path)
+          replace_exact(shufan, {
+              "Figure 20. The same complex-energy spectra shown separately for each value of θ.":
+                  "Figure 20. Individual panels for θ=0, 0.05, 0.10, 0.15, 0.20 and 0.25, making the motion of the continuum easier to follow.",
+              "The first two stable complex energies are approximately E₁=0.620971−0.000058i and E₂=1.327197−0.015447i. Their real parts are close to the two transmission peaks found in Part 3. They give Γ₁≈0.000116 and Γ₂≈0.030894, so the first resonance is much narrower than the second.":
+                  "The two lowest stable points are E₁≈0.620971−0.000058i and E₂≈1.327197−0.015447i. Their real parts lie near the Part 3 transmission maxima. Using Γ=−2 Im(E) gives Γ₁≈0.000116 and Γ₂≈0.030894. The much smaller Γ₁ explains why the first transmission peak is so sharp.",
+              "Around the first resonance, the Breit-Wigner curves almost overlap the Hermitian transmission curve, reproducing both the center and the very small width. Around the second resonance, the calculated center and broader width remain close to the Hermitian peak, but the curves differ away from the maximum. This difference is consistent with a non-resonant background and contributions from broader resonances.":
+                  "At the first resonance, the Breit-Wigner approximation nearly coincides with the Hermitian curve and reproduces its narrow line shape. For the second resonance, the center and overall width are still close, but the single-pole curve no longer follows the full profile away from the top. The remaining difference is attributed to the non-resonant background and the influence of broader resonances.",
+          }, "Shufan")
+          shufan.save(shufan_path)
+
+          yifeng = Document(yifeng_path)
+          replace_exact(yifeng, {
+              "Part 6 — Complex scaling and resonance states":
+                  "Part 6 — Resonance poles from complex scaling",
+              "In Part 6, the sine-box matrix method from Part 5 is used again after rotating the coordinate into the complex plane, x→x exp(iθ). The Hamiltonian becomes":
+                  "Part 5 gives a real matrix spectrum inside a finite box. In this part, the coordinate in that matrix is continued to x exp(iθ), so the Hamiltonian is no longer Hermitian:",
+              "The kinetic matrix is multiplied by exp(−2iθ), and the potential is evaluated at x exp(iθ). The non-Hermitian matrix is then diagonalized,":
+                  "For each θ, the modified matrix is diagonalized with the same sine basis,",
+              "The calculation uses J=2000, L=200, N=10000 and θ=0, 0.05, 0.10, 0.15, 0.20, and 0.25. The box-continuum eigenvalues rotate downward by about 2θ, while resonance eigenvalues remain almost fixed. These stable complex points are selected as the resonance energies.":
+                  "The box calculation uses (J,L,N)=(2000,200,10000). Six rotations are evaluated from θ=0 to 0.25 in steps of 0.05. Comparing the resulting spectra separates the moving box-continuum points from the nearly stationary resonance poles.",
+              "A resonance energy is written as":
+                  "For a resonance pole,",
+              "Eres,n is the center of the transmission peak, and Γₙ is its full width at half maximum in the isolated Breit-Wigner approximation,":
+                  "Eres,n fixes the resonance position, whereas Γₙ gives the peak width. The corresponding single-pole transmission curve is",
+              "Therefore, a smaller negative imaginary part gives a narrower peak. The same rotation also changes the outgoing resonance wave function into ψθ(x)=ψ[x exp(iθ)], which decays at large |x| and can be represented numerically.":
+                  "The complex eigenvalue therefore supplies both quantities that were only seen as a peak in Part 3. The same coordinate rotation is also applied to the resonance wave function, allowing the unscaled and scaled tails to be compared.",
+              "6.1 Complex eigenvalue spectra":
+                  "6.1 Rotated continuum and stationary poles",
+              "Figure 21. Complex eigenvalues for several values of θ shown in one plot.":
+                  "Figure 21. The six complex spectra superposed in one panel.",
+              "At θ=0, the box continuum lies on the real axis. As θ increases, these states rotate downward into the complex-energy plane. The isolated points that stay nearly fixed are the resonance eigenvalues.":
+                  "When θ=0, the box states lie along the real axis. For θ>0 they move onto sloping branches in the lower half-plane. The two isolated points near 0.620971−0.000058i and 1.327197−0.015447i do not follow these branches and are taken as the first two resonance poles.",
+              "Figure 22. The same complex-energy spectra shown separately for each value of θ.":
+                  "Figure 22. Separate complex-energy panels for the six scaling angles.",
+              "The first two resonance energies are E₁≈0.620971−0.000058i and E₂≈1.327197−0.015447i. Their real parts are close to the two transmission peaks from Part 3. They give Γ₁≈0.000116 and Γ₂≈0.030894, so the first resonance is much narrower than the second.":
+                  "The widths follow directly from the imaginary parts: Γ₁≈0.000116 and Γ₂≈0.030894. This large difference matches the line shapes in Part 3: the first peak is extremely sharp, while the second covers a much wider energy interval.",
+              "6.2 Breit-Wigner profiles":
+                  "6.2 Transmission curves reconstructed from the poles",
+              "The complex resonance energies from Section 6.1 are substituted into the Breit-Wigner expression above and compared with the Hermitian transmission curve from Part 3.":
+                  "The poles above are inserted into the Breit-Wigner formula and plotted together with the finite-difference transmission from Part 3.",
+              "Figure 23. Hermitian transmission and Breit-Wigner profiles from the complex resonance energies.":
+                  "Figure 23. Part 3 transmission curve together with the Breit-Wigner curves generated from the complex poles.",
+              "Figure 24. Detailed comparison around the first and second resonance peaks.":
+                  "Figure 24. Enlarged views of the two low-energy resonances.",
+              "The first Breit-Wigner profile almost overlaps the Hermitian curve, reproducing both its center and narrow width. The second profile gives a close center and the correct broader scale, but the curves differ away from the maximum. This is consistent with background and broader-resonance contributions.":
+                  "For the first pole, the two curves are almost indistinguishable near the peak. The second pole also places the resonance in the same energy region and gives the expected broader shape, but a single Breit-Wigner term does not reproduce the full background on both sides of the peak.",
+              "6.3 Resonance wave function":
+                  "6.3 What the rotation does to the wave function",
+              "Figures 25 and 26 show the second resonance state, Eres≈1.327197−0.015447i. The original Siegert wave function has outgoing boundary conditions and grows at large |x|. After complex scaling, ψθ(x)=ψ[x exp(iθ)] with θ=0.1 decays away from the potential.":
+                  "For the wave-function test, the pole at E≈1.327197−0.015447i is used. Without complex scaling, the outgoing Siegert solution increases as |x| becomes large. Evaluating the solution at x exp(iθ) with θ=0.1 changes the tails into decay.",
+              "Figure 25. Second resonance wave function for −200≤x≤200 before and after complex scaling.":
+                  "Figure 25. Real and imaginary parts of the second-resonance state on −200≤x≤200.",
+              "Figure 26. The same resonance wave function over −500≤x≤500.":
+                  "Figure 26. The calculation extended to the interval −500≤x≤500.",
+              "The larger range makes the difference clearer: the unscaled state grows outward, while the complex-scaled state remains localized around the potential.":
+                  "On the wider axis, the colored unscaled oscillations grow steadily, whereas the black scaled curve stays concentrated near the interaction region. This is the practical reason the scaled resonance can be handled with a finite basis.",
+              "6.4 Comparison of resonance energies":
+                  "6.4 Check against the Part 3 peak positions",
+              "Part 3 gives Hermitian peak energies E₁⁽ᴴ⁾≈0.62097030 and E₂⁽ᴴ⁾≈1.32882395. Part 6 gives the complex poles E₁⁽ᶜˢ⁾≈0.620971−0.000058i and E₂⁽ᶜˢ⁾≈1.327197−0.015447i. Comparing the real parts, the first values almost coincide and the second values remain close. Both methods therefore find the same two resonance regions. The complex method also gives Γ₁≈0.000116 and Γ₂≈0.030894, and the small shift of the second center is consistent with its broader, less isolated peak.":
+                  "Part 3 locates maxima on the real-energy transmission curve, while Part 6 locates poles of the non-Hermitian matrix. The first pole, 0.620971−0.000058i, lies almost directly below the first Part 3 maximum at 0.62097030. For the second resonance, Re(E)=1.327197 is slightly lower than the Part 3 maximum 1.32882395, but both calculations point to the same energy region. Complex scaling additionally provides the two widths through the imaginary parts.",
+          }, "Yifeng")
+          yifeng.save(yifeng_path)
+
+          for path in (shufan_path, yifeng_path):
+              with zipfile.ZipFile(path) as archive:
+                  bad = archive.testzip()
+                  if bad is not None:
+                      raise RuntimeError(f"Corrupt DOCX member in {path}: {bad}")
+
+          def part6_units(path):
+              doc = Document(path)
+              started = False
+              paragraphs = []
+              for paragraph in doc.paragraphs:
+                  text = paragraph.text.strip()
+                  if text.startswith("6. Part 6") or text.startswith("Part 6 —"):
+                      started = True
+                  if started and text:
+                      paragraphs.append(text)
+              units = []
+              for paragraph in paragraphs:
+                  if paragraph.startswith(("Hθ", "Eₙ", "|T(E)|")):
+                      continue
+                  if re.fullmatch(r"6\.\d.*", paragraph) or paragraph.startswith(("6. Part", "Part 6")):
+                      continue
+                  if paragraph.startswith("Figure"):
+                      units.append(paragraph)
+                  else:
+                      units.extend(
+                          sentence.strip()
+                          for sentence in re.split(r"(?<=[.!?])\s+", paragraph)
+                          if len(sentence.split()) >= 6
+                      )
+              return units
+
+          shufan_units = part6_units(shufan_path)
+          yifeng_units = part6_units(yifeng_path)
+          exact = set(shufan_units) & set(yifeng_units)
+          if exact:
+              raise RuntimeError(f"Exact non-formula duplicates remain: {sorted(exact)}")
+          highest = max(
+              SequenceMatcher(None, a.lower(), b.lower()).ratio()
+              for a in shufan_units
+              for b in yifeng_units
+          )
+          if highest >= 0.70:
+              raise RuntimeError(f"Part 6 wording is still too similar: {highest:.3f}")
+          print(f"Highest remaining non-formula similarity: {highest:.3f}")
+          PY
+
+      - name: Commit reports and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            "Shufan ZHANG 999018435/quantum_scattering_report.docx" \
+            "Yifeng CHEN 999016959/Quantum_Scattering_Project_Report.docx"
+          git rm ".github/workflows/deduplicate-part6-temp.yml"
+          git commit -m "Differentiate Part 6 wording in both reports"
+          git push origin main
