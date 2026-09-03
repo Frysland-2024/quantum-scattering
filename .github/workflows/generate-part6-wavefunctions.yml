@@ -46,17 +46,6 @@ jobs:
         run: >-
           python -c "from pathlib import Path; from quantum_scattering.resonance_wavefunction import generate_resonance_wavefunctions; generate_resonance_wavefunctions(Path('Yifeng CHEN 999016959/Codes and Figures/output'), profile='reference')"
 
-      - name: Upload Part 6 report inputs
-        uses: actions/upload-artifact@v4
-        with:
-          name: part6-report-inputs
-          path: |
-            Shufan ZHANG 999018435/codes and figures/outputs/part6/*.png
-            Yifeng CHEN 999016959/Codes and Figures/output/part6_complex_scaling/*.png
-            Yifeng CHEN 999016959/Codes and Figures/src/quantum_scattering/complex_scaling.py
-          if-no-files-found: error
-          retention-days: 1
-
       - name: Commit generated figures
         run: |
           git config user.name "github-actions[bot]"
