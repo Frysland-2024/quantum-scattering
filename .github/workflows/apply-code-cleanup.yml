@@ -22,6 +22,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "2730c4aadf575f626adb72afa38346d7339657b2174f68d869d5a3c423d9334a  .github/cleanup/patch.00" | sha256sum -c -
+          echo "ca698204e2636efba131e1b5deaa79d00f3e5c4b341e7486052a5cf331db4e7c  .github/cleanup/patch.01" | sha256sum -c -
+          echo "88ad4672fc8896a09122a5bf8ff156de02fc98fc4fe0dfc47e60f650918d5e46  .github/cleanup/patch.02" | sha256sum -c -
+          echo "6c12186b735b6fa4874f043b32c8926be8a1674d860089870ec7c76fecec1b35  .github/cleanup/patch.03" | sha256sum -c -
           cat .github/cleanup/patch.* > /tmp/code_cleanup_patch.b64
           test "$(wc -c < /tmp/code_cleanup_patch.b64)" -eq 26348
           base64 -d /tmp/code_cleanup_patch.b64 > /tmp/code_cleanup.patch.gz
