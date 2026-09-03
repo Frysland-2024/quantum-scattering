@@ -1,0 +1,29 @@
+name: Package codebase for audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/audit-codebase.yml"
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Package source files
+        run: |
+          zip -r codebase-audit.zip \
+            "Shufan ZHANG 999018435/codes and figures" \
+            "Yifeng CHEN 999016959/Codes and Figures" \
+            -x "*/outputs/*" "*/output/*" "*/__pycache__/*" "*.pyc"
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: codebase-audit
+          path: codebase-audit.zip
+          retention-days: 1
