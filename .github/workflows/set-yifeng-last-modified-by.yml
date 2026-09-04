@@ -1,0 +1,85 @@
+name: Set Yifeng document metadata
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/set-yifeng-last-modified-by.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set lastModifiedBy to cuifa01
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          import os
+          import tempfile
+          import xml.etree.ElementTree as ET
+
+          report = Path("Yifeng CHEN 999016959/Quantum_Scattering_Project_Report.docx")
+          core_name = "docProps/core.xml"
+          cp = "http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
+          dc = "http://purl.org/dc/elements/1.1/"
+
+          with ZipFile(report, "r") as source:
+              infos = source.infolist()
+              contents = {info.filename: source.read(info.filename) for info in infos}
+
+          root = ET.fromstring(contents[core_name])
+          creator = root.find(f"{{{dc}}}creator")
+          modified_by = root.find(f"{{{cp}}}lastModifiedBy")
+          if creator is None or creator.text != "Yifeng CHEN":
+              raise RuntimeError(f"Unexpected creator metadata: {None if creator is None else creator.text!r}")
+          if modified_by is None:
+              modified_by = ET.SubElement(root, f"{{{cp}}}lastModifiedBy")
+          modified_by.text = "cuifa01"
+          contents[core_name] = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+
+          handle, temp_name = tempfile.mkstemp(prefix="yifeng_report_", suffix=".docx", dir=report.parent)
+          os.close(handle)
+          temporary = Path(temp_name)
+          try:
+              with ZipFile(temporary, "w") as destination:
+                  for info in infos:
+                      destination.writestr(info, contents[info.filename])
+              with ZipFile(temporary, "r") as check:
+                  check_root = ET.fromstring(check.read(core_name))
+                  check_creator = check_root.find(f"{{{dc}}}creator")
+                  check_modified_by = check_root.find(f"{{{cp}}}lastModifiedBy")
+                  if check_creator is None or check_creator.text != "Yifeng CHEN":
+                      raise RuntimeError("Creator metadata changed unexpectedly")
+                  if check_modified_by is None or check_modified_by.text != "cuifa01":
+                      raise RuntimeError("lastModifiedBy was not updated")
+                  for info in infos:
+                      if info.filename != core_name and check.read(info.filename) != contents[info.filename]:
+                          raise RuntimeError(f"Unexpected change outside core metadata: {info.filename}")
+              temporary.replace(report)
+          finally:
+              temporary.unlink(missing_ok=True)
+
+          print("creator=Yifeng CHEN")
+          print("lastModifiedBy=cuifa01")
+          PY
+
+      - name: Remove temporary workflow and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm ".github/workflows/set-yifeng-last-modified-by.yml"
+          git add "Yifeng CHEN 999016959/Quantum_Scattering_Project_Report.docx"
+          git commit -m "Set Yifeng report editor metadata to cuifa01"
+          git push
