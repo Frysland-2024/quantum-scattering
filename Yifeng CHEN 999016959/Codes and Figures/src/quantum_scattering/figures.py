@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+
 from pathlib import Path
 from typing import Iterable
 
@@ -153,6 +155,22 @@ def generate_part2(root: Path) -> list[Path]:
     created.append(_save(fig, output / "regularized_delta.png"))
 
     rows = convergence_table()
+    csv_path = output / "delta_convergence.csv"
+    with csv_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["L", "integral", "phi(0)", "absolute_difference", "grid_step"])
+        for row in rows:
+            writer.writerow(
+                [
+                    f"{row.cutoff:.0f}",
+                    f"{row.integral:.12g}",
+                    f"{row.target:.12g}",
+                    f"{row.absolute_error:.12g}",
+                    f"{row.grid_step:.12g}",
+                ]
+            )
+    created.append(csv_path)
+
     fig, ax = plt.subplots(figsize=(10, 3.0))
     ax.axis("off")
     table_text = [

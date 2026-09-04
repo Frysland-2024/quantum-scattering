@@ -1,4 +1,5 @@
 from pathlib import Path
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
 from quantum_scattering.core import gaussian_p, regularized_delta, ensure_dir
@@ -27,6 +28,8 @@ def test_table():
             p=p_reference
         phi=np.real(gaussian_p(p,alpha,p0))
         value=float(np.trapezoid(phi*regularized_delta(p,L),p)); rows.append((L,value,phi0,abs(value-phi0)))
+    with (OUT/'part2_delta_test.csv').open('w',newline='',encoding='utf-8') as f:
+        w=csv.writer(f); w.writerow(['L','integral','phi(0)','absolute_difference']); w.writerows(rows)
     fig,ax=plt.subplots(figsize=(12,3)); ax.axis('off')
     cell=[[f'{r[1]:.8f}' for r in rows],[f'{phi0:.8f}']*3,[f'{r[3]:.8f}' for r in rows]]
     tab=ax.table(cellText=cell,rowLabels=[r'$\int_{-L}^{L}dp\,\phi(p)\,\delta_L(p)$',r'$\phi(p=0)$','Absolute Difference'],colLabels=[r'$10^1$',r'$10^2$',r'$10^3$'],loc='center',cellLoc='center'); tab.auto_set_font_size(False); tab.set_fontsize(13); tab.scale(1,1.7)
