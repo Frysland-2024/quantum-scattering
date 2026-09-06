@@ -9,28 +9,28 @@ from pathlib import Path
 src = Path('Yifeng CHEN 999016959/Quantum_Scattering_Project_Report.docx')
 doc = Document(src)
 paras = doc.paragraphs
-idx = next(i for i,p in enumerate(paras) if p.text == 'The Dirac delta function is defined by its action on a smooth test function f(p):')
-p32,p33,p34,p35,p36,p37 = paras[idx:idx+6]
-assert p37._p.xpath('.//w:drawing'), 'Figure 4 image paragraph not found'
-style = p32.style
+heading_idx = next(i for i,p in enumerate(paras) if p.text == 'Part 2 — Regularized Dirac delta function')
+img_idx = next(i for i,p in enumerate(paras[heading_idx+1:], start=heading_idx+1) if p._p.xpath('.//w:drawing'))
+anchor = paras[img_idx]
+style = paras[heading_idx+1].style
 
-def clear(p):
-    for c in list(p._p):
-        if c.tag != qn('w:pPr'):
-            p._p.remove(c)
+# Keep only the three core steps before Figure 4.
+for p in list(doc.paragraphs[heading_idx+1:img_idx]):
+    p._element.getparent().remove(p._element)
 
-def body(p,text,after=1.5):
-    clear(p); p.style=style; p.alignment=WD_ALIGN_PARAGRAPH.JUSTIFY
-    p.paragraph_format.space_before=Pt(0); p.paragraph_format.space_after=Pt(after)
-    r=p.add_run(text); r.font.name='Times New Roman'; r.font.size=Pt(10.5)
-
-def insert_before(anchor,text=None,center=False,after=1.5):
-    x=OxmlElement('w:p'); anchor._p.addprevious(x); q=Paragraph(x,anchor._parent); q.style=style
-    q.alignment=WD_ALIGN_PARAGRAPH.CENTER if center else WD_ALIGN_PARAGRAPH.JUSTIFY
-    q.paragraph_format.space_before=Pt(0); q.paragraph_format.space_after=Pt(after)
+def add_para_before(anchor, text=None, center=False, after=2.0):
+    el = OxmlElement('w:p')
+    anchor._p.addprevious(el)
+    p = Paragraph(el, anchor._parent)
+    p.style = style
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER if center else WD_ALIGN_PARAGRAPH.JUSTIFY
+    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_after = Pt(after)
     if text is not None:
-        r=q.add_run(text); r.font.name='Times New Roman'; r.font.size=Pt(10.5)
-    return q
+        r = p.add_run(text)
+        r.font.name = 'Times New Roman'
+        r.font.size = Pt(10.5)
+    return p
 
 M='m:'
 def me(tag,val=None):
@@ -38,79 +38,71 @@ def me(tag,val=None):
     if val is not None: e.set(qn('m:val'),val)
     return e
 
-def mr(text,italic=True):
+def mr(text, italic=True):
     r=me('r'); rp=me('rPr'); rp.append(me('sty','i' if italic else 'p')); r.append(rp)
     t=me('t'); t.text=text; r.append(t); return r
 
 def txt(parent,text,italic=True): parent.append(mr(text,italic))
-def sub(parent,b,s,bi=True,si=True):
-    z=me('sSub'); e=me('e'); txt(e,b,bi); ss=me('sub'); txt(ss,s,si); z.extend([e,ss]); parent.append(z)
-def frac(parent,nb,db):
-    f=me('f'); n=me('num'); d=me('den'); nb(n); db(d); f.extend([n,d]); parent.append(f)
-def integ(parent,lo,hi,eb):
+def sub(parent,base,subtxt,base_italic=True,sub_italic=True):
+    ss=me('sSub'); e=me('e'); txt(e,base,base_italic); s=me('sub'); txt(s,subtxt,sub_italic); ss.extend([e,s]); parent.append(ss)
+def frac(parent,num_builder,den_builder):
+    f=me('f'); n=me('num'); d=me('den'); num_builder(n); den_builder(d); f.extend([n,d]); parent.append(f)
+def integral(parent,lo,hi,expr_builder):
     n=me('nary'); pr=me('naryPr'); pr.append(me('chr','∫')); pr.append(me('limLoc','undOvr')); n.append(pr)
-    a=me('sub'); txt(a,lo,False); b=me('sup'); txt(b,hi,False); e=me('e'); eb(e); n.extend([a,b,e]); parent.append(n)
-def math(p,builder,after=1.5):
-    clear(p); p.style=style; p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_before=Pt(0); p.paragraph_format.space_after=Pt(after)
+    s=me('sub'); txt(s,lo,False); u=me('sup'); txt(u,hi,False); e=me('e'); expr_builder(e); n.extend([s,u,e]); parent.append(n)
+def limit(parent,sub_builder,expr_builder):
+    limlow=me('limLow'); e=me('e'); txt(e,'lim',False); lim=me('lim'); sub_builder(lim); limlow.extend([e,lim]); parent.append(limlow)
+    txt(parent,' ',False); expr_builder(parent)
+def set_math_para(p,builder):
+    p.alignment=WD_ALIGN_PARAGRAPH.CENTER
     op=me('oMathPara'); o=me('oMath'); builder(o); op.append(o); p._p.append(op)
 
-body(p32,'The Dirac delta function is defined through its action on a smooth test function f(p):')
-def e1(o):
-    def e(x):
-        for a,i in [('f',1),('(',0),('p',1),(')',0),('δ',1),('(',0),('p',1),(')',0),('d',1),('p',1)]: txt(x,a,bool(i))
-    integ(o,'−∞','+∞',e)
-    for a,i in [(' = ',0),('f',1),('(',0),('0',0),(')',0)]: txt(o,a,bool(i))
-math(p33,e1)
+# 1) Test-function definition
+add_para_before(anchor, 'The Dirac delta function is defined through its action on a smooth test function f(p):', after=1.0)
+p = add_para_before(anchor, center=True, after=2.0)
+def eq1(o):
+    def expr(e):
+        for a,it in [('f',1),('(',0),('p',1),(')',0),('δ',1),('(',0),('p',1),(')',0),('d',1),('p',1)]: txt(e,a,bool(it))
+    integral(o,'−∞','+∞',expr)
+    for a,it in [(' = ',0),('f',1),('(',0),('0',0),(')',0)]: txt(o,a,bool(it))
+set_math_para(p,eq1)
 
-body(p34,'More generally,',after=1)
-def e2(o):
-    def e(x):
-        for a,i in [('f',1),('(',0),('p',1),(')',0),('δ',1),('(',0),('p',1),(' − ',0)]: txt(x,a,bool(i))
-        sub(x,'p','0',True,False)
-        for a,i in [(')',0),('d',1),('p',1)]: txt(x,a,bool(i))
-    integ(o,'−∞','+∞',e)
-    for a,i in [(' = ',0),('f',1),('(',0)]: txt(o,a,bool(i))
-    sub(o,'p','0',True,False); txt(o,')',False)
-math(p35,e2)
+# 2) Finite-L regularization used in the project
+add_para_before(anchor, 'For the numerical calculation, the regularized Dirac delta function used in this project is', after=1.0)
+p = add_para_before(anchor, center=True, after=2.0)
+def eq2(o):
+    sub(o,'δ','L',True,True)
+    for a,it in [('(',0),('p',1),(')',0),(' = ',0)]: txt(o,a,bool(it))
+    frac(o, lambda n: txt(n,'1',False), lambda d: (txt(d,'2',False),txt(d,'π',False)))
+    txt(o,' ',False)
+    def expr(e):
+        s=me('sSup'); base=me('e'); txt(base,'e',True); sup=me('sup')
+        for a,it in [('i',1),('p',1),('x',1)]: txt(sup,a,bool(it))
+        s.extend([base,sup]); e.append(s); txt(e,'d',True); txt(e,'x',True)
+    integral(o,'−L','L',expr)
+    txt(o,' = ',False)
+    def nb(n):
+        f=me('func'); f.append(me('funcPr')); fn=me('fName'); txt(fn,'sin',False); arg=me('e')
+        for a,it in [('(',0),('L',1),('p',1),(')',0)]: txt(arg,a,bool(it))
+        f.extend([fn,arg]); n.append(f)
+    frac(o, nb, lambda d: (txt(d,'π',False),txt(d,'p',True)))
+set_math_para(p,eq2)
 
-body(p36,'A Fourier representation of the same distribution is',after=1)
-def e3(o):
-    for a,i in [('δ',1),('(',0),('p',1),(')',0),(' = ',0)]: txt(o,a,bool(i))
-    frac(o,lambda n:txt(n,'1',False),lambda d:(txt(d,'2',False),txt(d,'π',False))); txt(o,' ',False)
-    def e(x):
-        f=me('func'); f.append(me('funcPr')); fn=me('fName'); txt(fn,'exp',False); a=me('e')
-        for t,i in [('(',0),('i',1),('p',1),('x',1),(')',0)]: txt(a,t,bool(i))
-        f.extend([fn,a]); x.append(f); txt(x,'d',True); txt(x,'x',True)
-    integ(o,'−∞','+∞',e)
-q=insert_before(p37,center=True,after=1); math(q,e3,after=1)
-
-insert_before(p37,'For the numerical calculation, the infinite x-range is truncated to [−L, L]. This gives the regularized delta function',after=1)
-def e4(o):
-    sub(o,'δ','L');
-    for a,i in [('(',0),('p',1),(')',0),(' = ',0)]: txt(o,a,bool(i))
-    frac(o,lambda n:txt(n,'1',False),lambda d:(txt(d,'2',False),txt(d,'π',False))); txt(o,' ',False)
-    def e(x):
-        f=me('func'); f.append(me('funcPr')); fn=me('fName'); txt(fn,'exp',False); a=me('e')
-        for t,i in [('(',0),('i',1),('p',1),('x',1),(')',0)]: txt(a,t,bool(i))
-        f.extend([fn,a]); x.append(f); txt(x,'d',True); txt(x,'x',True)
-    integ(o,'−L','L',e); txt(o,' = ',False)
-    def n(x):
-        f=me('func'); f.append(me('funcPr')); fn=me('fName'); txt(fn,'sin',False); a=me('e')
-        for t,i in [('(',0),('L',1),('p',1),(')',0)]: txt(a,t,bool(i))
-        f.extend([fn,a]); x.append(f)
-    frac(o,n,lambda d:(txt(d,'π',False),txt(d,'p',True)))
-q=insert_before(p37,center=True,after=1); math(q,e4,after=1)
-
-insert_before(p37,'As L becomes very large, the regularized function approaches the Dirac delta distribution, so that',after=1)
-def e5(o):
-    def e(x):
-        for a,i in [('f',1),('(',0),('p',1),(')',0)]: txt(x,a,bool(i))
-        sub(x,'δ','L')
-        for a,i in [('(',0),('p',1),(')',0),('d',1),('p',1)]: txt(x,a,bool(i))
-    integ(o,'−∞','+∞',e)
-    for a,i in [(' → ',0),('f',1),('(',0),('0',0),(')',0)]: txt(o,a,bool(i))
-q=insert_before(p37,center=True,after=2); math(q,e5,after=2)
+# 3) L -> infinity test-function limit
+add_para_before(anchor, 'As L → ∞, the regularized function approaches the Dirac delta distribution, so that', after=1.0)
+p = add_para_before(anchor, center=True, after=3.0)
+def eq3(o):
+    def subb(s):
+        for a,it in [('L',1),(' → ',0),('∞',0)]: txt(s,a,bool(it))
+    def expr(parent):
+        def integrand(e):
+            for a,it in [('f',1),('(',0),('p',1),(')',0)]: txt(e,a,bool(it))
+            sub(e,'δ','L',True,True)
+            for a,it in [('(',0),('p',1),(')',0),('d',1),('p',1)]: txt(e,a,bool(it))
+        integral(parent,'−∞','+∞',integrand)
+    limit(o,subb,expr)
+    for a,it in [(' = ',0),('f',1),('(',0),('0',0),(')',0)]: txt(o,a,bool(it))
+set_math_para(p,eq3)
 
 doc.save(src)
-print('restored Part 2')
+print('Yifeng Part 2 reduced to the three core steps.')
