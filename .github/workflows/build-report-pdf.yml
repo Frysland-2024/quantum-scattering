@@ -3,7 +3,7 @@ name: Build report PDF
 on:
   push:
     branches:
-      - portfolio-cleanup
+      - main
     paths:
       - "report/quantum_scattering_report.docx"
       - ".github/workflows/build-report-pdf.yml"
