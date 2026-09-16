@@ -1,0 +1,43 @@
+name: Build report PDF
+
+on:
+  push:
+    branches:
+      - portfolio-cleanup
+    paths:
+      - "report/quantum_scattering_report.docx"
+      - ".github/workflows/build-report-pdf.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-report-pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install LibreOffice
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libreoffice
+
+      - name: Convert DOCX to PDF
+        run: |
+          mkdir -p /tmp/report-pdf
+          libreoffice --headless --convert-to pdf --outdir /tmp/report-pdf report/quantum_scattering_report.docx
+          cp /tmp/report-pdf/quantum_scattering_report.pdf report/quantum_scattering_report.pdf
+
+      - name: Commit generated PDF
+        run: |
+          if git diff --quiet -- report/quantum_scattering_report.pdf && git ls-files --error-unmatch report/quantum_scattering_report.pdf >/dev/null 2>&1; then
+            echo "PDF is already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add report/quantum_scattering_report.pdf
+          git commit -m "Build PDF version of project report"
+          git push
