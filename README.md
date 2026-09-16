@@ -1,8 +1,10 @@
+![Portfolio cover](assets/portfolio-cover.jpg)
+
 <div align="center">
 
 # Numerical Quantum Scattering in 1D
 
-**Transmission resonances · wave-packet dynamics · finite-basis diagonalization · complex scaling**
+**Transmission resonances · wave-packet dynamics · complex scaling**
 
 An individual computational-physics course project comparing conventional Hermitian scattering calculations with a non-Hermitian resonance description based on Siegert-state ideas.
 
@@ -130,6 +132,8 @@ The project deliberately uses several complementary numerical representations of
 ```text
 .
 ├── README.md
+├── assets/
+│   └── portfolio-cover.jpg
 ├── code/
 │   ├── part1_free_gaussian.py
 │   ├── part2_regularized_delta.py
