@@ -1,4 +1,4 @@
-![Portfolio cover](assets/portfolio-cover.jpg)
+![Portfolio cover](assets/portfolio-cover.svg)
 
 <div align="center">
 
@@ -133,7 +133,7 @@ The project deliberately uses several complementary numerical representations of
 .
 ├── README.md
 ├── assets/
-│   └── portfolio-cover.jpg
+│   └── portfolio-cover.svg
 ├── code/
 │   ├── part1_free_gaussian.py
 │   ├── part2_regularized_delta.py
