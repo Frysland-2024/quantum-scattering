@@ -6,7 +6,7 @@
 
 **Transmission resonances · wave-packet dynamics · complex scaling**
 
-An individual computational-physics course project comparing conventional Hermitian scattering calculations with a non-Hermitian resonance description based on Siegert-state ideas.
+An individual computational-physics project comparing conventional Hermitian scattering calculations with a non-Hermitian resonance description based on Siegert-state ideas.
 
 [**Final report (PDF)**](report/quantum_scattering_report.pdf) · [**Editable report (DOCX)**](report/quantum_scattering_report.docx) · [**Source code**](code/) · [**Selected figures**](figures/)
 
