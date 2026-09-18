@@ -189,25 +189,9 @@ python code/run_all.py --quick --skip-gifs
 
 ---
 
-## Why this project is useful in my portfolio
-
-This project is not only a set of quantum-mechanics plots. It demonstrates a complete scientific-computing workflow:
-
-**physical model → numerical formulation → implementation → reproducibility → comparison of independent methods → physical interpretation.**
-
-The most important result is the agreement in resonance structure between the conventional scattering calculation and the non-Hermitian complex-energy picture, together with the additional physical interpretation supplied by the resonance widths.
-
----
-
-## Course context and reference
-
-Individual course project for **Quantum Scattering Theory**.
-
-Primary theoretical reference:
+## Reference
 
 - M. Sindelka, *An Introduction to Scattering Theory*, arXiv:2204.03651.
-
-The original project brief asks students to compare the conventional time-independent scattering treatment with a non-Hermitian Siegert-state approach and to use the latter to interpret resonance scattering.
 
 ---
 
