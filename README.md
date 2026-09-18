@@ -1,4 +1,4 @@
-![Portfolio cover](assets/portfolio-cover.svg)
+![Project overview](assets/portfolio-cover.svg)
 
 <div align="center">
 
@@ -157,7 +157,7 @@ The project deliberately uses several complementary numerical representations of
     └── quantum_scattering_report.docx
 ```
 
-The portfolio version intentionally keeps only the material needed to understand the project: source code, selected figures, and the final report. Lecture handouts, instructor whiteboard scans, temporary diagnostics, and unrelated student files are excluded.
+The repository contains source code, selected figures, and the final report.
 
 Generated outputs are written to `code/outputs/` and are ignored by Git so that the repository remains compact and reproducible.
 
